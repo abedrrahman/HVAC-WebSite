@@ -4,7 +4,7 @@ Read this whole file before changing anything. It covers two linked projects own
 
 | Project | Folder | What it is |
 |---|---|---|
-| Web page | `D:\HVAC AI Project` | Django app: clients, HVAC units, manuals, alarm codes, contracts, visits, maintenance reports. Not a git repository. |
+| Web page | `D:\HVAC AI Project` | Django app: clients, HVAC units, manuals, alarm codes, contracts, visits, maintenance reports. Git repository, branch `main`, kept private on GitHub. `.gitignore` keeps `.env`, the database, client files, backups, logs and spreadsheets out; check it before adding a new kind of file. |
 | Phone app | `D:\hvac-maintenance-app` | Expo / React Native app for technicians. GitHub `abedrrahman/hvac-maintenance-app`. |
 
 The owner is not a developer. Write to them in short, plain English. They often write in mixed English and Arabic.
