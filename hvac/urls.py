@@ -98,6 +98,7 @@ urlpatterns = [
     path("maintenance-reports/<int:pk>/edit/", m.maintenance_report_edit, name="maintenance_report_edit"),
     path("maintenance-reports/<int:pk>/step/", m.maintenance_report_step, name="maintenance_report_step"),
     path("maintenance-reports/<int:pk>/pdf/", m.maintenance_report_pdf, name="maintenance_report_pdf"),
+    path("maintenance-reports/<int:pk>/email/", m.maintenance_report_email, name="maintenance_report_email"),
     path("maintenance-reports/<int:pk>/add/", m.maintenance_report_add, name="maintenance_report_add"),
     path("calendar/", m.calendar_view, name="calendar"),
     path("visits/", m.visit_list, name="visit_list"),

@@ -88,14 +88,16 @@ AR = {
     "Add contact details": "إضافة بيانات الاتصال", "No notes yet.": "لا توجد ملاحظات بعد.",
     "Maintenance Reports": "تقارير الصيانة", "Contract reports": "تقارير العقود", "Daily reports": "التقارير اليومية", "waiting": "بالانتظار", "Report": "التقرير",
     "Edit report": "تعديل التقرير",
+    "To": "إلى", "Copy to": "نسخة إلى", "Subject": "الموضوع", "Message": "الرسالة", "Send": "إرسال", "Attached": "مرفق",
+    "Separate several addresses with commas.": "افصل بين العناوين بفاصلة.", "The email was sent.": "تم إرسال البريد.",
+    "The email could not be sent.": "تعذر إرسال البريد.",
+    "Email is not set up on this web page yet. Ask the administrator to add the email settings.": "البريد غير مُعَدّ على هذا الموقع بعد. اطلب من مدير النظام إضافة إعدادات البريد.",
     "Waiting for the foreman": "بانتظار رئيس العمال", "Waiting for the engineer": "بانتظار المهندس", "Approved": "معتمد",
     "Approve and send to engineer": "اعتماد وإرسال إلى المهندس", "Approve": "اعتماد", "Approve this report?": "اعتماد هذا التقرير؟",
     "Send by email": "إرسال بالبريد", "Approved report PDF": "PDF التقرير المعتمد", "Phone PDF": "PDF الهاتف",
     "Foreman": "رئيس العمال", "Engineer": "المهندس", "Approvals": "الاعتمادات", "Waiting for approval": "بانتظار الاعتماد",
     "Someone else already did this step.": "قام شخص آخر بهذه الخطوة بالفعل.",
     "Approved reports are locked. Only an administrator can change them.": "التقارير المعتمدة مقفلة. فقط مدير النظام يستطيع تعديلها.",
-    "Send by email downloads the PDF and opens a new email in Outlook. Drag the downloaded PDF into the email, check it, and send it.":
-        "زر الإرسال بالبريد ينزّل ملف PDF ويفتح رسالة جديدة في Outlook. اسحب ملف PDF المنزّل إلى الرسالة، راجعها، ثم أرسلها.",
     "This report came from the phone app. It is changed on its report page, by the foreman or the engineer whose turn it is.":
         "هذا التقرير جاء من تطبيق الهاتف. يُعدَّل من صفحة التقرير بواسطة رئيس العمال أو المهندس حسب الدور.",
     "The report from the phone is waiting for approval by the foreman and the engineer.": "تقرير الهاتف بانتظار اعتماد رئيس العمال والمهندس.",

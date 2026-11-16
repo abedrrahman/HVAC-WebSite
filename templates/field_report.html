@@ -8,7 +8,7 @@
     {% if can_add %}<a class="btn primary" href="{% url 'maintenance_report_add' fr.pk %}">{% icon "plus" 16 %} {% t "Add site and unit" %}</a>{% endif %}
     {% if can_edit %}<a class="btn" href="{% url 'maintenance_report_edit' fr.pk %}">{% icon "edit" 16 %} {% t "Edit" %}</a>{% endif %}
     {% if step %}<form method="post" action="{% url 'maintenance_report_step' fr.pk %}" data-confirm="{% t 'Approve this report?' %}">{% csrf_token %}<input type="hidden" name="status" value="{{ fr.status }}"><button class="btn primary">{% icon "check" 16 %} {% t step %}</button></form>{% endif %}
-    {% if can_email %}<a class="btn primary" href="{% url 'maintenance_report_pdf' fr.pk %}?email=1" download data-mailto="{{ mailto }}">{% t "Send by email" %}</a>{% endif %}
+    {% if can_email %}<a class="btn primary" href="{% url 'maintenance_report_email' fr.pk %}">{% t "Send by email" %}</a>{% endif %}
     {% if fr.status == "approved" %}<a class="btn" href="{% url 'maintenance_report_pdf' fr.pk %}">{% t "Approved report PDF" %}</a>{% endif %}
     {% if pdf %}<a class="btn" href="{% url 'attachment_file' pdf.pk %}" target="_blank" rel="noopener">{% t "Phone PDF" %}</a>{% endif %}
     <a class="btn" href="{% url 'maintenance_reports' %}{% if not fr.visit %}#daily{% endif %}">{% t "Maintenance Reports" %}</a>
@@ -20,7 +20,6 @@
   {% if fr.foreman_at %} · {% t "Foreman" %}: {{ fr.foreman_by|default:"—" }}, {{ fr.foreman_at|date:"j M Y H:i" }}{% endif %}
   {% if fr.engineer_at %} · {% t "Engineer" %}: {{ fr.engineer_by|default:"—" }}, {{ fr.engineer_at|date:"j M Y H:i" }}{% endif %}
   {% if fr.status == "approved" %}<br>{% t "Approved reports are locked. Only an administrator can change them." %}{% endif %}
-  {% if can_email %}<br>{% t "Send by email downloads the PDF and opens a new email in Outlook. Drag the downloaded PDF into the email, check it, and send it." %}{% endif %}
 </div>
 
 <div class="readings">
