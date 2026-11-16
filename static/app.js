@@ -198,6 +198,11 @@ addEventListener("pageshow", e => { if (e.persisted) document.querySelectorAll("
 document.querySelectorAll(".content > .alert.success").forEach(a => setTimeout(() => a.remove(), 4500));
 
 // Dark mode, remembered per browser.
+// "Send by email": the link downloads the PDF; a moment later the mail program opens with the email filled in.
+document.querySelectorAll("[data-mailto]").forEach(a => a.addEventListener("click", () => {
+  setTimeout(() => { location.href = a.dataset.mailto; }, 800);
+}));
+
 document.querySelectorAll("[data-theme-toggle]").forEach(b => b.addEventListener("click", () => {
   const dark = document.documentElement.dataset.theme !== "dark";
   if (dark) document.documentElement.dataset.theme = "dark"; else delete document.documentElement.dataset.theme;

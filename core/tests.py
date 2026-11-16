@@ -15,7 +15,6 @@ import psycopg
 from django.conf import settings
 from django.contrib.postgres.search import SearchVector
 from django.core.cache import cache
-from django.core import mail
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.db import IntegrityError, OperationalError, connection, transaction
 from django.test import TestCase, TransactionTestCase, override_settings
@@ -646,27 +645,17 @@ class PhoneApp(Base):
         self.assertEqual((fr.status, fr.engineer_by, fr.data["checklist_items"][0]["value"]), ("approved", self.engineer, "4"))
         self.assertEqual(self.client.get(url).status_code, 403)  # approved reports are locked
         self.assertEqual(self.client.post(step, {"status": "engineer"}).status_code, 403)
-        email = reverse("maintenance_report_email", args=[fr.pk])
-        Client.objects.filter(pk=self.client_a.pk).update(email="facilities@hikma.test")
-        form = self.client.get(email).context["form"]
-        self.assertEqual((form["to"].value(), form["subject"].value()[:18]), ("facilities@hikma.test", "Maintenance report"))
-        self.assertContains(self.client.post(email, {"to": "not an address", "subject": "x", "body": "x"}), "valid email")
-        with self.settings(EMAIL_HOST="smtp.test"):
-            self.assertRedirects(self.client.post(email, {"to": "facilities@hikma.test; boss@hikma.test", "cc": "eng@asee.test", "subject": "Report", "body": "Hello"}), view)
-        sent = mail.outbox[-1]
-        self.assertEqual((sent.to, sent.cc, sent.attachments[0][0], sent.attachments[0][2]),
-                         (["facilities@hikma.test", "boss@hikma.test"], ["eng@asee.test"], f"ASEE_Report_{fr.visit.number}.pdf", "application/pdf"))
-        self.assertTrue(sent.attachments[0][1].startswith(b"%PDF"))
-        pdf = self.client.get(reverse("maintenance_report_pdf", args=[fr.pk]))
+        page = self.client.get(view)
+        self.assertContains(page, "mailto:?subject=Maintenance%20report")  # the client has no email yet, so the To line stays empty
+        pdf = self.client.get(reverse("maintenance_report_pdf", args=[fr.pk]), {"email": "1"})
         merged = pdfium.PdfDocument(pdf.content)
         self.assertEqual((pdf["Content-Type"], len(merged) >= 2), ("application/pdf", True))  # the approved report, then the signed phone pages
         merged.close()
         self.assertEqual(list(ActivityLog.objects.filter(target_type="FieldReport", target_id=fr.pk).order_by("pk").values_list("action", flat=True)),
-                         ["report_edited", "report_sent_to_engineer", "report_edited", "report_approved", "report_emailed"])
+                         ["report_edited", "report_sent_to_engineer", "report_edited", "report_approved", "report_email_prepared"])
 
         self.client.force_login(self.viewer)  # after approval everyone with the visit in scope can read it
         self.assertEqual((self.client.get(view).status_code, self.client.get(reverse("attachment_file", args=[phone_pdf.pk])).status_code), (200, 200))
-        self.assertEqual(self.client.get(reverse("maintenance_report_email", args=[fr.pk])).status_code, 403)  # sending is for engineers
         self.client.force_login(self.admin)  # only an administrator can still change it
         self.assertEqual(self.client.get(url).status_code, 200)
 

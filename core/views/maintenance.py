@@ -2,14 +2,12 @@
 import calendar as pycal
 import hashlib
 import json
+from urllib.parse import quote
 from datetime import date, timedelta
 
 from django import forms
-from django.conf import settings
 from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
-from django.core.mail import EmailMessage
-from django.core.validators import validate_email
 from django.db import transaction
 from django.db.models import Q
 from django.http import HttpResponse
@@ -500,6 +498,7 @@ def maintenance_report_view(request, pk):
         "can_add": not fr.visit_id and request.user.has("equipment.edit") and request.user.has("clients.edit"),
         "can_edit": can_edit_report(request.user, fr), "step": _next_step(request.user, fr),
         "can_email": fr.status == FieldReport.Status.APPROVED and (request.user.has("reports.approve") or request.user.has("users.manage")),
+        "mailto": _mailto(fr) if fr.status == FieldReport.Status.APPROVED else "",
         "edited": ActivityLog.objects.filter(action="report_edited", target_type="FieldReport", target_id=fr.pk).exists(),
     })
 
@@ -608,77 +607,19 @@ def _report_subject(fr):
     return " – ".join(x for x in ("Maintenance report", unit.name if unit else fr.site or fr.client_name, fr.machine_model, date_format(fr.report_date, "j M Y")) if x)
 
 
-def _email_body(fr):
+def _mailto(fr):
+    """A new email in the user's mail program (the new Outlook), with the client's address, subject and message filled in.
+    shortcut: a mailto link cannot carry the PDF, so the button downloads it to be dragged in; Microsoft Graph could attach it, if ever needed."""
     client = fr.visit.client if fr.visit else None
     name = client.name_en if client else fr.client_name or fr.site or "Sir/Madam"
     name_ar = (client.name_ar or name) if client else name
     unit = fr.visit.unit.name if fr.visit else fr.machine_model
-    return (f"Dear {name},\n\nPlease find attached the maintenance report for {unit}, visit date {date_format(fr.report_date, 'j F Y')}.\n\n"
+    body = (f"Dear {name},\n\nPlease find attached the maintenance report for {unit}, visit date {date_format(fr.report_date, 'j F Y')}.\n\n"
             "Best regards,\nAladdin Sweiti Engineering Est. (ASEE)\n\n"
             f"السادة {name_ar} المحترمين،\n\nمرفق تقرير الصيانة للوحدة {unit} بتاريخ {fr.report_date:%d/%m/%Y}.\n\n"
             "مع التحية،\nمؤسسة علاء الدين السويطي الهندسية")
-
-
-def _approved_pdf(fr):
-    """The approved report's PDF and its file name."""
-    files = list((fr.visit or fr).attachments.all())
-    content = build_report_pdf(fr, report_view(fr.data, limits_for(unit=fr.visit.unit if fr.visit else None)),
-                               [a for a in files if a.kind == Attachment.Kind.PHOTO], next((a for a in files if a.kind == Attachment.Kind.REPORT), None))
-    return content, f"ASEE_Report_{fr.visit.number if fr.visit else fr.pk}.pdf"
-
-
-class ReportEmailForm(f.BaseForm):
-    to = forms.CharField(label="To", help_text="Separate several addresses with commas.")
-    cc = forms.CharField(label="Copy to", required=False, help_text="Separate several addresses with commas.")
-    subject = forms.CharField(label="Subject", max_length=200)
-    body = forms.CharField(label="Message", widget=forms.Textarea(attrs={"rows": 12}))
-
-    def _addresses(self, name):
-        found = [a.strip() for a in self.cleaned_data[name].replace(";", ",").split(",") if a.strip()]
-        for address in found:
-            validate_email(address)
-        return found
-
-    def clean_to(self):
-        return self._addresses("to")
-
-    def clean_cc(self):
-        return self._addresses("cc")
-
-
-@requires("visits.view")
-def maintenance_report_email(request, pk):
-    """Send by email: the email is shown here with the approved PDF attached, can be changed, and is sent by the web page itself.
-    The sender gets a copy, and every sent email is logged."""
-    fr = _phone_report(request, pk)
-    if fr.status != FieldReport.Status.APPROVED or not (request.user.has("reports.approve") or request.user.has("users.manage")):
-        raise PermissionDenied
-    client = fr.visit.client if fr.visit else None
-    form = ReportEmailForm(request.POST or None, initial={"to": client.email if client else "", "cc": request.user.email,
-                                                          "subject": _report_subject(fr), "body": _email_body(fr)})
-    back = reverse("maintenance_report_view", args=[fr.pk])
-    ready = bool(settings.EMAIL_HOST)
-    if request.method == "POST" and form.is_valid():
-        if not ready:
-            messages.error(request, t("Email is not set up on this web page yet. Ask the administrator to add the email settings."))
-            return redirect(back)
-        content, name = _approved_pdf(fr)
-        mail = EmailMessage(form.cleaned_data["subject"], form.cleaned_data["body"], settings.DEFAULT_FROM_EMAIL, form.cleaned_data["to"],
-                            cc=form.cleaned_data["cc"], reply_to=[request.user.email] if request.user.email else None)
-        mail.attach(name, content, "application/pdf")
-        try:
-            mail.send()
-        except Exception as e:  # the mail server refused or could not be reached: nothing was sent, and the user is told why
-            messages.error(request, t("The email could not be sent.") + f" ({e.__class__.__name__}: {e})"[:300])
-            return form_page(request, form, "Send by email", back, submit="Send", subject=str(fr.visit or fr),
-                             intro=t("Attached") + f": {name}")
-        record(request.user, "report_emailed", fr, f"To: {', '.join(mail.to)}" + (f" · CC: {', '.join(mail.cc)}" if mail.cc else "") + f" · {mail.subject}")
-        messages.success(request, t("The email was sent."))
-        return redirect(back)
-    intro = t("Attached") + f": ASEE_Report_{fr.visit.number if fr.visit else fr.pk}.pdf"
-    if not ready:
-        intro += " · " + t("Email is not set up on this web page yet. Ask the administrator to add the email settings.")
-    return form_page(request, form, "Send by email", back, submit="Send", subject=str(fr.visit or fr), intro=intro)
+    to = client.email if client and client.email else ""
+    return f"mailto:{quote(to)}?subject={quote(_report_subject(fr))}&body={quote(body)}"
 
 
 @requires("visits.view")
@@ -687,9 +628,13 @@ def maintenance_report_pdf(request, pk):
     fr = _phone_report(request, pk)
     if fr.status != FieldReport.Status.APPROVED:
         raise PermissionDenied
-    content, name = _approved_pdf(fr)
+    files = list((fr.visit or fr).attachments.all())
+    content = build_report_pdf(fr, report_view(fr.data, limits_for(unit=fr.visit.unit if fr.visit else None)),
+                               [a for a in files if a.kind == Attachment.Kind.PHOTO], next((a for a in files if a.kind == Attachment.Kind.REPORT), None))
+    if request.GET.get("email"):
+        record(request.user, "report_email_prepared", fr, _report_subject(fr))
     response = HttpResponse(content, content_type="application/pdf")
-    response["Content-Disposition"] = f'attachment; filename="{name}"'
+    response["Content-Disposition"] = f'attachment; filename="ASEE_Report_{fr.visit.number if fr.visit else fr.pk}.pdf"'
     return response
 
 
