@@ -705,8 +705,6 @@ class VisitReportForm(BaseModelForm):
 class UserForm(BaseModelForm):
     new_password = forms.CharField(label="Password", required=False, widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
                                    help_text="Leave empty to keep the current password. The user must change it at next sign-in.")
-    can_edit_reports = forms.BooleanField(label="Can edit maintenance reports", required=False,
-                                          help_text="Not part of the role. Every change this user makes to a report is written to the Activity Log.")
 
     class Meta:
         model = m.User
@@ -717,7 +715,6 @@ class UserForm(BaseModelForm):
     def __init__(self, *a, **k):
         super().__init__(*a, **k)
         self.fields["role"].required = True
-        self.fields["can_edit_reports"].initial = self.instance.can_edit_reports
         if not self.instance.pk:
             self.fields["new_password"].required = True
             self.fields["new_password"].help_text = t("The user must change it at next sign-in.")
@@ -730,7 +727,6 @@ class UserForm(BaseModelForm):
 
     def save(self, commit=True):
         u = super().save(commit=False)
-        u.can_edit_reports = self.cleaned_data["can_edit_reports"]
         p = self.cleaned_data.get("new_password")
         if p:
             u.set_password(p)

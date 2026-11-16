@@ -50,10 +50,37 @@ def contracts_for(user):
     return qs if user.has("scope.all") else qs.filter(pk__in=visits_for(user).exclude(contract=None).values("contract_id"))
 
 
+def reviews_reports(user):
+    """Foremen, engineers and administrators see every phone report from the moment it arrives."""
+    return user.has("reports.review") or user.has("reports.approve") or user.has("users.manage")
+
+
 def field_reports_for(user):
-    """Reports waiting for their site or unit to be added: everyone with full scope sees them, others only their own."""
+    """Phone reports this user may open: all of them for the reviewers; for everyone else their own uploads,
+    and approved reports within their usual scope. A report is not shown to others before the engineer approves it."""
     qs = FieldReport.objects.all()
-    return qs if user.has("scope.all") or user.can_edit_reports else qs.filter(uploaded_by=user)  # an editor has to see what they edit
+    if reviews_reports(user):
+        return qs
+    approved = qs.filter(status=FieldReport.Status.APPROVED)
+    if not user.has("scope.all"):
+        approved = approved.filter(visit__in=visits_for(user))
+    return qs.filter(Q(uploaded_by=user) | Q(pk__in=approved.values("pk")))
+
+
+def can_edit_report(user, fr):
+    """Whose turn it is: the foreman while it waits for the foreman, the engineer after that. Once approved, only an administrator."""
+    if user.has("users.manage"):
+        return True
+    if fr.status == FieldReport.Status.RECEIVED:
+        return user.has("reports.review")
+    return fr.status == FieldReport.Status.ENGINEER and user.has("reports.approve")
+
+
+def notify_report(fr, code, step, en, ar, actor=None):
+    """Tells everyone holding the permission that a report waits for them. The step is in the key, so a retried upload never notifies twice."""
+    rows = [Notification(user=u, kind=Notification.Kind.REPORT, dedupe_key=f"report:{fr.pk}:{step}", message_en=en, message_ar=ar, field_report=fr)
+            for u in _users_with(code) if u != actor]
+    Notification.objects.bulk_create(rows, ignore_conflicts=True)
 
 
 def documents_for(user):
@@ -68,7 +95,10 @@ def attachment_allowed(user, att):
     if att.unit_id:
         return user.has("equipment.view") and units_for(user).filter(pk=att.unit_id).exists()
     if att.visit_id:
-        return user.has("visits.view") and visits_for(user).filter(pk=att.visit_id).exists()
+        if not (user.has("visits.view") and visits_for(user).filter(pk=att.visit_id).exists()):
+            return False
+        # A visit filed from a phone report keeps its files hidden from others until the engineer approves the report.
+        return not FieldReport.objects.filter(visit_id=att.visit_id).exclude(pk__in=field_reports_for(user).values("pk")).exists()
     if att.contract_id:
         return user.has("contracts.view") and contracts_for(user).filter(pk=att.contract_id).exists()
     if att.field_report_id:

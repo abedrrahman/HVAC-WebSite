@@ -8,6 +8,7 @@ PERMISSIONS = {
     "Maintenance contracts": ["contracts.view", "contracts.edit"],
     "Maintenance schedules": ["schedules.view", "schedules.manage"],
     "Maintenance visits": ["visits.view", "visits.manage", "visits.update", "visits.attach"],
+    "Maintenance reports from the phone": ["reports.review", "reports.approve"],
     "Reports": ["reports.view"],
     "Notifications": ["notifications.visits", "notifications.contracts"],
     "Administration": ["users.manage", "settings.manage"],
@@ -25,7 +26,10 @@ PERMISSION_LABELS = {
     "contracts.view": "View contracts", "contracts.edit": "Create, edit, renew, suspend and terminate contracts",
     "schedules.view": "View maintenance schedules", "schedules.manage": "Create and edit maintenance schedules",
     "visits.view": "View visits", "visits.manage": "Create, assign, reschedule and cancel visits",
-    "visits.update": "Update visit progress and complete visits", "visits.attach": "Upload visit reports and photographs",    "reports.view": "View and export reports",
+    "visits.update": "Update visit progress and complete visits", "visits.attach": "Upload visit reports and photographs",
+    "reports.review": "Foreman: read incoming phone reports, correct readings and send them to the engineer",
+    "reports.approve": "Engineer: read, correct and approve phone reports, and send them to the client",
+    "reports.view": "View and export reports",
     "notifications.visits": "Receive reminders for all visits", "notifications.contracts": "Receive contract expiry reminders",
     "users.manage": "Manage users and permissions", "settings.manage": "Manage system settings",
     "scope.all": "See all records (otherwise only equipment and visits assigned to the user)",
@@ -38,7 +42,11 @@ DEFAULT_ROLES = {
     ("Engineer", "مهندس"): [
         "equipment.view", "equipment.edit", "clients.view", "manufacturers.view", "documents.view", "documents.upload",
         "contracts.view", "schedules.view", "schedules.manage", "visits.view", "visits.manage", "visits.update",
-        "visits.attach", "reports.view", "notifications.visits", "scope.all",
+        "visits.attach", "reports.view", "notifications.visits", "scope.all", "reports.approve",
+    ],
+    ("Foreman", "رئيس عمال"): [
+        "equipment.view", "clients.view", "documents.view", "schedules.view", "visits.view", "visits.update", "visits.attach",
+        "scope.all", "reports.review",
     ],
     ("Technician", "فني"): [
         "equipment.view", "documents.view", "schedules.view", "visits.view", "visits.update", "visits.attach",

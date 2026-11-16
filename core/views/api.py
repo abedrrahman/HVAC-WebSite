@@ -19,7 +19,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from ..forms import IMAGE_EXTENSIONS, validate_upload
 from ..models import AlarmCode, Attachment, DocumentAssignment, FieldReport, User, Visit
-from ..services import clients_for, documents_for, new_attachment, record, units_for, visit_from_report, visits_for
+from ..services import clients_for, documents_for, new_attachment, notify_report, record, units_for, visit_from_report, visits_for
 from .documents import _serve, alarm_ask
 from .general import LOCK_SECONDS, MAX_LOGIN_FAILURES, client_ip
 
@@ -206,12 +206,12 @@ def api_report(request):
             if str(data.get("visit_id", "")).isdigit():
                 open_visit = visits_for(user).open().select_for_update().filter(pk=data["visit_id"], unit=unit).first()
             owner = visit_from_report(unit, data, user, when, report_id, open_visit)
-            FieldReport.objects.create(visit=owner, **kept)
+            report = FieldReport.objects.create(visit=owner, **kept)
             answer = {"visit_id": owner.pk, "number": owner.number, "url": _base(request) + owner.get_absolute_url(), "pending": False}
             files = {"visit": owner}
         else:
             # The site or unit is not in the database: keep the whole report under Daily Reports until someone adds them.
-            owner = FieldReport.objects.create(**kept)
+            owner = report = FieldReport.objects.create(**kept)
             answer = {"visit_id": None, "number": "", "url": _base(request) + reverse("maintenance_reports") + "#daily", "pending": True}
             files = {"field_report": owner}
         if pdf:
@@ -219,4 +219,7 @@ def api_report(request):
         for p in photos:
             new_attachment(p, user, Attachment.Kind.PHOTO, **files)
         record(user, "app_report_uploaded", owner, f"{text('technician', 100)} · {len(photos)} photos")
+        what = " · ".join(x for x in (str(unit) if unit else text("client", 200) or text("site", 200), text("machine_model", 120)) if x) or report_id
+        notify_report(report, "reports.review", "received", f"New maintenance report waiting for the foreman: {what}",
+                      f"تقرير صيانة جديد بانتظار رئيس العمال: {what}", actor=user)
     return JsonResponse({**answer, "already_uploaded": False}, status=201)

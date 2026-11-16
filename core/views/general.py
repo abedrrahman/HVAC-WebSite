@@ -257,9 +257,9 @@ def notifications_read_all(request):
 @requires("users.manage")
 def user_list(request):
     return list_page(request, "User Management", User.objects.select_related("role").order_by("username"),
-                     ["Username", "Name", "Email", "Role", "Edits reports", "Status", "Last sign-in"],
+                     ["Username", "Name", "Email", "Role", "Status", "Last sign-in"],
                      lambda x: [link(reverse("user_edit", args=[x.pk]), x.username), x.get_full_name() or "—", x.email or "—", x.role.name if x.role else ("—"),
-                                t("Yes") if x.can_edit_reports or x.has("users.manage") else "—", active_badge(x.is_active), fmt(x.last_login)],
+                                active_badge(x.is_active), fmt(x.last_login)],
                      actions=[action("Add User", reverse("user_new")), action("Roles & Permissions", reverse("role_list"), "settings", False)])
 
 
@@ -271,10 +271,8 @@ def user_edit(request, pk=None):
         if obj and obj.pk == request.user.pk and not form.cleaned_data["is_active"]:
             form.add_error("is_active", t("You cannot deactivate your own account."))
         else:
-            before = bool(obj and User.objects.filter(pk=obj.pk).values_list("can_edit_reports", flat=True).first())  # the form has already changed obj
             x = form.save()
-            saved(request, x, "updated" if pk else "created",
-                  "" if before == x.can_edit_reports else "May now edit maintenance reports" if x.can_edit_reports else "Can no longer edit maintenance reports")
+            saved(request, x, "updated" if pk else "created")
             return redirect("user_list")
     return form_page(request, form, "Edit User" if pk else "Add User", reverse("user_list"))
 

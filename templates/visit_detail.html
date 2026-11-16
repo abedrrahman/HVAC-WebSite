@@ -45,8 +45,9 @@
     </div>
     {% endif %}
     <div class="card"><h2>{% t "Maintenance Report" %}</h2>
-      {% if phone_report %}<p><a class="btn primary" href="{% url 'maintenance_report_view' phone_report.pk %}">{% t "Open the full report" %}</a></p>{% endif %}
-      {% if report %}
+      {% if phone_report %}<p><a class="btn primary" href="{% url 'maintenance_report_view' phone_report.pk %}">{% t "Open the full report" %}</a> <span class="meta">{% t phone_report.get_status_display %}</span></p>{% endif %}
+      {% if report_hidden %}<div class="empty">{% t "The report from the phone is waiting for approval by the foreman and the engineer." %}</div>
+      {% elif report %}
       <dl class="specs" style="grid-template-columns:1fr">
         <div><dt>{% t "Findings" %}</dt><dd style="white-space:pre-line">{{ report.findings }}</dd></div>
         <div><dt>{% t "Actions Taken" %}</dt><dd style="white-space:pre-line">{{ report.actions_taken|default:"—" }}</dd></div>

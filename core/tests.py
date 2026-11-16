@@ -590,48 +590,74 @@ class PhoneApp(Base):
         self.client.force_login(self.tech)  # someone else's report stays hidden from a restricted user
         self.assertEqual(self.client.get(reverse("maintenance_report_view", args=[fr.pk])).status_code, 404)
 
-    def test_editing_a_report_needs_the_permission_and_logs_old_and_new_values(self):
+    def test_report_goes_foreman_then_engineer_then_is_locked_and_every_step_is_logged(self):
+        import io
+        import pypdfium2 as pdfium
+        from reportlab.pdfgen import canvas
+        signed = io.BytesIO()
+        page = canvas.Canvas(signed)
+        page.drawString(50, 750, "signed by the client")
+        page.save()
+        foreman = User.objects.create_user("fore", password="x", role=Role.objects.get(name_en="Foreman"))
+        Visit.objects.create(unit=self.c1, client=self.client_a, scheduled_date=self.today, technician=self.tech)
         report = {"id": "r-5", "unit_id": self.c1.pk, "general_notes": "ok", "checklist_items": [
             {"field_key": "oil_pressure", "label_en": "Oil Pressure", "value": "2"}, {"field_key": "compressor_1_amps", "label_en": "Compressor 1 Amps", "value": "30"}]}
-        self.client.post(reverse("api_report"), {"report": json.dumps(report)}, **self.token("eng"))
+        self.client.post(reverse("api_report"), {"report": json.dumps(report), "pdf": SimpleUploadedFile("r.pdf", signed.getvalue(), "application/pdf")}, **self.token("tech"))
         fr = FieldReport.objects.get(app_report_id="r-5")
-        url = reverse("maintenance_report_edit", args=[fr.pk])
-        e = self.engineer
-        user_form = lambda **more: self.client.post(reverse("user_edit", args=[e.pk]), {"username": "eng", "role": e.role_id, "language": e.language, "is_active": "on", **more})
-        self.client.force_login(e)  # no role gives this: an administrator switches it on for a person in User Management
-        self.assertEqual(self.client.post(url, {"item_0": "9"}).status_code, 403)
-        self.assertEqual(user_form(can_edit_reports="on").status_code, 403)
-        self.client.force_login(self.admin)
-        self.assertRedirects(user_form(can_edit_reports="on"), reverse("user_list"))
-        self.client.force_login(e)
+        told = lambda: set(Notification.objects.filter(field_report=fr).values_list("user__username", flat=True))
+        self.assertEqual((fr.status, told()), ("received", {"fore", "admin"}))  # the foremen are told first, the engineers not yet
+        view, url, step = (reverse(n, args=[fr.pk]) for n in ("maintenance_report_view", "maintenance_report_edit", "maintenance_report_step"))
+        phone_pdf = fr.visit.attachments.get(kind="report")
+
+        self.client.force_login(self.viewer)  # before approval nobody else sees the report, its text or its files
+        self.assertEqual(self.client.get(view).status_code, 404)
+        self.assertContains(self.client.get(fr.visit.get_absolute_url()), "waiting for approval")
+        self.assertEqual(self.client.get(reverse("attachment_file", args=[phone_pdf.pk])).status_code, 403)
+        self.client.force_login(self.tech)  # the technician who sent it can read it, not change it
+        self.assertEqual((self.client.get(view).status_code, self.client.get(url).status_code), (200, 403))
+        self.client.force_login(self.engineer)  # not the engineer's turn yet
+        self.assertEqual((self.client.get(url).status_code, self.client.post(step, {"status": "received"}).status_code), (403, 403))
+
+        self.client.force_login(foreman)
         save = lambda **values: self.client.post(url, {"stamp": self.client.get(url).context["form"].fields["stamp"].initial, "item_1": "30", "general_notes": "ok", **values})
-        save(item_0="2", materials_0_description="Oil", materials_0_qty="5", materials_0_unit="L")
-        fr.refresh_from_db()
-        self.assertEqual(fr.data["materials"], [{"description": "Oil", "qty": "5", "unit": "L"}])
-        self.assertEqual((fr.visit.report.parts_used, ActivityLog.objects.get(action="report_edited").details), ("Oil: 5 L", "Parts Used 1: — → Oil | 5 | L"))
-        self.client.force_login(self.admin)
-        user_form()
-        self.client.force_login(e)
-        self.assertEqual(self.client.get(url).status_code, 403)
-        self.assertEqual(list(ActivityLog.objects.filter(target_type="User", target_id=e.pk).exclude(details="").values_list("details", flat=True)),
-                         ["Can no longer edit maintenance reports", "May now edit maintenance reports"])
-        ActivityLog.objects.filter(action="report_edited").delete()
-        self.client.force_login(self.admin)
-        self.assertContains(self.client.get(url), "Oil Pressure")
         same = {"materials_0_description": "Oil", "materials_0_qty": "5", "materials_0_unit": "L"}
         stale = self.client.get(url).context["form"].fields["stamp"].initial
         save(item_0="3.5", **same)
         fr.refresh_from_db()
-        self.assertEqual([i["value"] for i in fr.data["checklist_items"]], ["3.5", "30"])
+        self.assertEqual(([i["value"] for i in fr.data["checklist_items"]], fr.data["materials"]), (["3.5", "30"], [{"description": "Oil", "qty": "5", "unit": "L"}]))
         self.assertIn("Oil Pressure: 3.5", fr.visit.report.findings)
         log = ActivityLog.objects.get(action="report_edited")
-        self.assertEqual((log.user, log.details), (self.admin, "Oil Pressure: 2 → 3.5"))
-        self.assertContains(self.client.get(reverse("activity")), "Oil Pressure: 2 → 3.5")  # the Activity Log in Settings shows old and new
+        self.assertEqual((log.user, log.details), (foreman, "Oil Pressure: 2 → 3.5\nParts Used 1: — → Oil | 5 | L"))
         save(item_0="3.5", **same)  # nothing changed: no new log line
         self.client.post(url, {"stamp": stale, "item_0": "2", "item_1": "30", "general_notes": "ok", **same})  # a form opened before that save cannot undo it
         fr.refresh_from_db()
         self.assertEqual((fr.data["checklist_items"][0]["value"], ActivityLog.objects.filter(action="report_edited").count()), ("3.5", 1))
         self.assertRedirects(self.client.get(reverse("visit_report", args=[fr.visit_id])), url)  # one place to edit: the hand-written form would be overwritten
+        self.client.post(step, {"status": "received"})
+        fr.refresh_from_db()
+        self.assertEqual((fr.status, fr.foreman_by, told()), ("engineer", foreman, {"fore", "admin", "eng"}))
+        self.assertEqual(self.client.get(url).status_code, 403)  # the foreman's turn is over
+
+        self.client.force_login(self.engineer)
+        save(item_0="4", **same)
+        self.client.post(step, {"status": "engineer"})
+        fr.refresh_from_db()
+        self.assertEqual((fr.status, fr.engineer_by, fr.data["checklist_items"][0]["value"]), ("approved", self.engineer, "4"))
+        self.assertEqual(self.client.get(url).status_code, 403)  # approved reports are locked
+        self.assertEqual(self.client.post(step, {"status": "engineer"}).status_code, 403)
+        page = self.client.get(view)
+        self.assertContains(page, "mailto:?subject=Maintenance%20report")  # the client has no email yet, so the To line stays empty
+        pdf = self.client.get(reverse("maintenance_report_pdf", args=[fr.pk]), {"email": "1"})
+        merged = pdfium.PdfDocument(pdf.content)
+        self.assertEqual((pdf["Content-Type"], len(merged) >= 2), ("application/pdf", True))  # the approved report, then the signed phone pages
+        merged.close()
+        self.assertEqual(list(ActivityLog.objects.filter(target_type="FieldReport", target_id=fr.pk).order_by("pk").values_list("action", flat=True)),
+                         ["report_edited", "report_sent_to_engineer", "report_edited", "report_approved", "report_email_prepared"])
+
+        self.client.force_login(self.viewer)  # after approval everyone with the visit in scope can read it
+        self.assertEqual((self.client.get(view).status_code, self.client.get(reverse("attachment_file", args=[phone_pdf.pk])).status_code), (200, 200))
+        self.client.force_login(self.admin)  # only an administrator can still change it
+        self.assertEqual(self.client.get(url).status_code, 200)
 
     def test_password_reset_signs_the_phone_out_and_a_serial_alone_does_not_pick_a_unit(self):
         auth = self.token("eng")

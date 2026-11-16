@@ -59,7 +59,6 @@ class User(AbstractUser):
     phone = models.CharField("Phone", max_length=50, blank=True)
     language = models.CharField("Language", max_length=2, default="en", choices=[("en", "English"), ("ar", "Arabic")])
     must_change_password = models.BooleanField(default=False)
-    can_edit_reports = models.BooleanField(default=False, editable=False)  # may change phone reports; switched on from a report's page, not by role
     api_token_hash = models.CharField(max_length=64, null=True, blank=True, unique=True, editable=False)  # the phone app's sign-in; only the hash is kept
 
     def has(self, code):
@@ -727,6 +726,16 @@ class FieldReport(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     visit = models.OneToOneField(Visit, null=True, blank=True, on_delete=models.SET_NULL, related_name="field_report")  # set once it is in the database
 
+    class Status(models.TextChoices):  # received -> the foreman sends it to the engineer -> the engineer approves it, and it is locked
+        RECEIVED = "received", "Waiting for the foreman"
+        ENGINEER = "engineer", "Waiting for the engineer"
+        APPROVED = "approved", "Approved"
+    status = models.CharField(max_length=10, choices=Status.choices, default=Status.RECEIVED)
+    foreman_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    foreman_at = models.DateTimeField(null=True, blank=True)
+    engineer_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
+    engineer_at = models.DateTimeField(null=True, blank=True)
+
     class Meta:
         ordering = ["-report_date", "-pk"]
 
@@ -780,6 +789,7 @@ class Notification(models.Model):
     class Kind(models.TextChoices):
         VISIT = "visit", "Maintenance Visit Reminder"
         CONTRACT = "contract", "Contract Expiration Reminder"
+        REPORT = "report", "Maintenance report from the phone"
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
     kind = models.CharField(max_length=20, choices=Kind.choices)
@@ -788,6 +798,7 @@ class Notification(models.Model):
     message_ar = models.TextField()
     visit = models.ForeignKey(Visit, null=True, blank=True, on_delete=models.CASCADE)
     contract = models.ForeignKey(Contract, null=True, blank=True, on_delete=models.CASCADE)
+    field_report = models.ForeignKey(FieldReport, null=True, blank=True, on_delete=models.CASCADE)
     created_at = models.DateTimeField(auto_now_add=True)
     read_at = models.DateTimeField(null=True, blank=True)
     emailed_at = models.DateTimeField(null=True, blank=True)
@@ -803,6 +814,8 @@ class Notification(models.Model):
 
     @property
     def target_url(self):
+        if self.field_report_id:
+            return reverse("maintenance_report_view", args=[self.field_report_id])
         return (self.visit or self.contract).get_absolute_url() if (self.visit or self.contract) else reverse("notifications")
 
 

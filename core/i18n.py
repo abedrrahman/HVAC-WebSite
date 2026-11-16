@@ -87,7 +87,21 @@ AR = {
     "Nothing in progress": "لا توجد زيارات قيد التنفيذ", "No completed visits yet": "لا توجد زيارات مكتملة بعد", "No contact details yet.": "لا توجد بيانات اتصال بعد.",
     "Add contact details": "إضافة بيانات الاتصال", "No notes yet.": "لا توجد ملاحظات بعد.",
     "Maintenance Reports": "تقارير الصيانة", "Contract reports": "تقارير العقود", "Daily reports": "التقارير اليومية", "waiting": "بالانتظار", "Report": "التقرير",
-    "Edit report": "تعديل التقرير", "Outside the limit": "خارج الحد المسموح", "Limit": "الحد", "Where the limits come from": "مصدر الحدود",
+    "Edit report": "تعديل التقرير",
+    "Waiting for the foreman": "بانتظار رئيس العمال", "Waiting for the engineer": "بانتظار المهندس", "Approved": "معتمد",
+    "Approve and send to engineer": "اعتماد وإرسال إلى المهندس", "Approve": "اعتماد", "Approve this report?": "اعتماد هذا التقرير؟",
+    "Send by email": "إرسال بالبريد", "Approved report PDF": "PDF التقرير المعتمد", "Phone PDF": "PDF الهاتف",
+    "Foreman": "رئيس العمال", "Engineer": "المهندس", "Approvals": "الاعتمادات", "Waiting for approval": "بانتظار الاعتماد",
+    "Someone else already did this step.": "قام شخص آخر بهذه الخطوة بالفعل.",
+    "Approved reports are locked. Only an administrator can change them.": "التقارير المعتمدة مقفلة. فقط مدير النظام يستطيع تعديلها.",
+    "Send by email downloads the PDF and opens a new email in Outlook. Drag the downloaded PDF into the email, check it, and send it.":
+        "زر الإرسال بالبريد ينزّل ملف PDF ويفتح رسالة جديدة في Outlook. اسحب ملف PDF المنزّل إلى الرسالة، راجعها، ثم أرسلها.",
+    "This report came from the phone app. It is changed on its report page, by the foreman or the engineer whose turn it is.":
+        "هذا التقرير جاء من تطبيق الهاتف. يُعدَّل من صفحة التقرير بواسطة رئيس العمال أو المهندس حسب الدور.",
+    "The report from the phone is waiting for approval by the foreman and the engineer.": "تقرير الهاتف بانتظار اعتماد رئيس العمال والمهندس.",
+    "Maintenance report from the phone": "تقرير صيانة من الهاتف", "Maintenance reports from the phone": "تقارير الصيانة من الهاتف",
+    "Foreman: read incoming phone reports, correct readings and send them to the engineer": "رئيس العمال: قراءة تقارير الهاتف الواردة وتصحيح القراءات وإرسالها إلى المهندس",
+    "Engineer: read, correct and approve phone reports, and send them to the client": "المهندس: قراءة تقارير الهاتف وتصحيحها واعتمادها وإرسالها إلى العميل", "Outside the limit": "خارج الحد المسموح", "Limit": "الحد", "Where the limits come from": "مصدر الحدود",
     "reading(s) outside the limits in the manuals. They are marked in red below.": "قراءة خارج الحدود المذكورة في الكتيبات، وهي مميزة بالأحمر في الأسفل.",
     "The manuals' limits are for a standard unit. A model or a single unit can have its own limits.": "حدود الكتيبات لوحدة قياسية. يمكن أن يكون لموديل أو لوحدة واحدة حدود خاصة.",
     "Reading limits": "حدود القراءات", "Change the limits for this unit": "تغيير الحدود لهذه الوحدة", "Minimum": "الحد الأدنى", "Maximum": "الحد الأعلى",
@@ -102,13 +116,10 @@ AR = {
     "Voltage imbalance": "عدم توازن الفولتية", "Compressor current": "تيار الضاغط", "Oil pressure": "ضغط الزيت", "Suction temperature": "حرارة السحب",
     "Discharge temperature": "حرارة الضخ", "Superheat (normal range)": "التحميص (المجال الطبيعي)", "Discharge pressure, R410A": "ضغط الضخ R410A", "Discharge pressure, R32": "ضغط الضخ R32",
     "Discharge pressure, R407C": "ضغط الضخ R407C", "Discharge pressure, R134a": "ضغط الضخ R134a", "Discharge pressure, R22": "ضغط الضخ R22", "Discharge pressure, R404A": "ضغط الضخ R404A",
-    "This report came from the phone app. Only users allowed to edit maintenance reports can change it.": "هذا التقرير جاء من تطبيق الهاتف. فقط المستخدمون المسموح لهم بتعديل تقارير الصيانة يستطيعون تغييره.",
     "Someone else changed this report while you were editing. Nothing was saved: check the values and enter your changes again.":
         "قام شخص آخر بتعديل هذا التقرير أثناء تعديلك. لم يُحفظ شيء: راجع القيم وأدخل تعديلاتك من جديد.",
     "Every change is written to the activity log with the old and the new value. Empty a row's main box to delete it; fill an empty row to add one.":
         "كل تعديل يُسجَّل في سجل النشاط مع القيمة القديمة والجديدة. أفرغ الخانة الرئيسية للسطر لحذفه، أو املأ سطراً فارغاً لإضافة سطر جديد.",
-    "Can edit maintenance reports": "يستطيع تعديل تقارير الصيانة", "Edits reports": "يعدّل التقارير",
-    "Not part of the role. Every change this user makes to a report is written to the Activity Log.": "ليست جزءاً من الدور. كل تعديل يقوم به هذا المستخدم على تقرير يُسجَّل في سجل النشاط.",
     "This report was changed on the website after the phone sent it. The PDF does not include the changes.":
         "تم تعديل هذا التقرير على الموقع بعد إرساله من الهاتف. ملف PDF لا يتضمن التعديلات.",    "Only administrators can edit this report.": "المديرون فقط يستطيعون تعديل هذا التقرير.",
     "Open": "فتح", "Open the full report": "فتح التقرير الكامل", "General readings": "القراءات العامة", "Compressor": "الضاغط", "Circuit": "الدائرة",

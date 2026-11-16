@@ -29,7 +29,8 @@ The owner is not a developer. Write to them in short, plain English. They often 
 - Data shape: Category > Subtype > Model > Unit; each Unit belongs to a Client. The manufacturer is set on the Model, not on the Unit.
 - Every page is in English and Arabic. Any new text needs an entry in `core/i18n.py`.
 - Permissions are role codes in `core/perms.py`, checked with `user.has("code")` and the `@requires` decorator. Users without `scope.all` see only what `units_for`, `visits_for` and friends in `services.py` return. Use those functions for every query a user can reach.
-- One permission is per person, not per role: `User.can_edit_reports`, ticked in User Management.
+- Phone reports go through an approval flow (`FieldReport.status`): `received` → the foreman (`reports.review`) corrects and sends it on → `engineer` → the engineer (`reports.approve`) corrects and approves → `approved`, locked except for `users.manage`. Rules: `field_reports_for`, `can_edit_report` and `notify_report` in `services.py`; steps in `maintenance_report_step`. Before approval only reviewers and the sender see a report, its visit text and its files.
+- The approved report's PDF is built by `core/report_pdf.py` and has the phone's signed PDF appended. "Send by email" downloads it and opens a `mailto:` draft (the owner uses the new Outlook, which cannot open prepared drafts with attachments).
 
 ## 3. Web page: commands
 

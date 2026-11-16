@@ -2,6 +2,7 @@
 import calendar as pycal
 import hashlib
 import json
+from urllib.parse import quote
 from datetime import date, timedelta
 
 from django import forms
@@ -9,15 +10,19 @@ from django.contrib import messages
 from django.core.exceptions import PermissionDenied, ValidationError
 from django.db import transaction
 from django.db.models import Q
+from django.http import HttpResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 from django.utils import timezone
+from django.utils.formats import date_format
 
 from .. import forms as f
 from ..i18n import t
 from ..phone_report import report_view
+from ..report_pdf import build_report_pdf
 from ..models import (ActivityLog, Attachment, Category, Client, Contract, Country, FieldReport, Schedule, SystemSettings, Unit, User, Visit, VisitReport, add_months)
-from ..services import (close_open_contract_visits, contracts_for, copy_for_renewal, field_reports_for, follow_schedule_people, limits_for, new_attachment, record, report_texts, set_contract_units,
+from ..services import (can_edit_report, close_open_contract_visits, contracts_for, copy_for_renewal, field_reports_for, follow_schedule_people, limits_for, new_attachment,
+                        notify_report, record, report_texts, set_contract_units,
                         sync_contract_visits, unit_conflicts, visit_from_report, visits_for)
 from .common import action, badge, fmt, form_page, link, list_page, post_only, requires, saved
 
@@ -314,10 +319,12 @@ def _visit_or_404(request, pk):
 @requires("visits.view")
 def visit_detail(request, pk):
     v = _visit_or_404(request, pk)
+    phone = FieldReport.objects.filter(visit=v).first()
+    hidden = bool(phone) and not field_reports_for(request.user).filter(pk=phone.pk).exists()
     return render(request, "visit_detail.html", {
-        "v": v, "today": timezone.localdate().isoformat(),
-        "report": getattr(v, "report", None), "attachments": v.attachments.all(),
-        "phone_report": field_reports_for(request.user).filter(visit=v).first(),
+        "v": v, "today": timezone.localdate().isoformat(), "report_hidden": hidden,
+        "report": None if hidden else getattr(v, "report", None), "attachments": [] if hidden else v.attachments.all(),
+        "phone_report": None if hidden else phone,
         "attachment_form": f.AttachmentForm(kinds=[Attachment.Kind.REPORT, Attachment.Kind.PHOTO, Attachment.Kind.OTHER]),
         "reschedule_form": f.RescheduleForm(initial={"scheduled_date": v.scheduled_date}), "cancel_form": f.CancelForm(),
         "complete_form": f.CompleteForm(initial={"actual_date": timezone.localdate(), "notes": v.notes}),
@@ -413,9 +420,9 @@ def visit_report(request, pk):
     v = _visit_or_404(request, pk)
     phone = FieldReport.objects.filter(visit=v).first()
     if phone:  # its text is written from the phone report's readings: editing it here would be overwritten, so there is one place to edit
-        if _can_edit_reports(request.user):
+        if can_edit_report(request.user, phone):
             return redirect("maintenance_report_edit", pk=phone.pk)
-        messages.info(request, t("This report came from the phone app. Only users allowed to edit maintenance reports can change it."))
+        messages.info(request, t("This report came from the phone app. It is changed on its report page, by the foreman or the engineer whose turn it is."))
         return redirect(v)
     report = getattr(v, "report", None)
     form = f.VisitReportForm(request.POST or None, instance=report)
@@ -458,7 +465,10 @@ def maintenance_reports(request):
     Daily reports also hold what the phone app sent for sites or units that are not in the database yet."""
     u = request.user
     done = visits_for(u).filter(status="completed").select_related("unit", "client", "contract", "technician", "field_report").prefetch_related("attachments").order_by("-actual_date", "-pk")
-    rows = lambda qs: [{"visit": v, "file": _report_file(v)} for v in qs[:100]]
+    mine = set(field_reports_for(u).values_list("pk", flat=True))
+    shown = lambda v: not hasattr(v, "field_report") or v.field_report.pk in mine  # a visit without a phone report is always shown
+    rows = lambda qs: [{"visit": v, "report": getattr(v, "field_report", None) if shown(v) else None, "file": _report_file(v) if shown(v) else None,
+                        "hidden": not shown(v)} for v in qs[:100]]
     waiting = [{"report": r, "file": _report_file(r)} for r in field_reports_for(u).filter(visit__isnull=True).select_related("uploaded_by").prefetch_related("attachments")[:100]]
     return render(request, "maintenance_reports.html", {
         "contract_rows": rows(done.filter(contract__isnull=False)), "daily_rows": rows(done.filter(contract__isnull=True)), "waiting": waiting,
@@ -477,10 +487,6 @@ def _phone_report(request, pk):
     return get_object_or_404(field_reports_for(request.user).select_related("visit__unit", "visit__client", "uploaded_by"), pk=pk)
 
 
-def _can_edit_reports(user):
-    return user.has("users.manage") or user.can_edit_reports
-
-
 @requires("visits.view")
 def maintenance_report_view(request, pk):
     """One phone report as a page: every reading in its own box, the superheat of each circuit, and the photos."""
@@ -490,7 +496,9 @@ def maintenance_report_view(request, pk):
         "fr": fr, "view": report_view(fr.data, limits_for(unit=fr.visit.unit if fr.visit else None)),
         "photos": [a for a in files if a.kind == Attachment.Kind.PHOTO], "pdf": next((a for a in files if a.kind == Attachment.Kind.REPORT), None),
         "can_add": not fr.visit_id and request.user.has("equipment.edit") and request.user.has("clients.edit"),
-        "can_edit": _can_edit_reports(request.user),
+        "can_edit": can_edit_report(request.user, fr), "step": _next_step(request.user, fr),
+        "can_email": fr.status == FieldReport.Status.APPROVED and (request.user.has("reports.approve") or request.user.has("users.manage")),
+        "mailto": _mailto(fr) if fr.status == FieldReport.Status.APPROVED else "",
         "edited": ActivityLog.objects.filter(action="report_edited", target_type="FieldReport", target_id=fr.pk).exists(),
     })
 
@@ -499,7 +507,7 @@ def maintenance_report_view(request, pk):
 def maintenance_report_edit(request, pk):
     """Change a phone report's readings, notes, parts and recommendations. What changed, from what to what, goes into the activity log."""
     fr = _phone_report(request, pk)
-    if not _can_edit_reports(request.user):
+    if not can_edit_report(request.user, fr):
         raise PermissionDenied
     items = [r for r in fr.data.get("checklist_items") or [] if isinstance(r, dict)]
     texts = {"required_maintenance": "Actions Taken", "general_notes": "Notes"}
@@ -557,6 +565,77 @@ def maintenance_report_edit(request, pk):
         return redirect(back)
     return form_page(request, form, "Edit report", back, submit="Save", subject=str(fr.visit or fr),
                      intro=t("Every change is written to the activity log with the old and the new value. Empty a row's main box to delete it; fill an empty row to add one."))
+
+
+STEPS = {  # status now -> (permission, new status, button, log action, who is told next)
+    FieldReport.Status.RECEIVED: ("reports.review", FieldReport.Status.ENGINEER, "Approve and send to engineer", "report_sent_to_engineer", "reports.approve"),
+    FieldReport.Status.ENGINEER: ("reports.approve", FieldReport.Status.APPROVED, "Approve", "report_approved", None),
+}
+
+
+def _next_step(user, fr):
+    """The approval button this user should see on the report, if it is their turn."""
+    step = STEPS.get(fr.status)
+    return step[2] if step and (user.has(step[0]) or user.has("users.manage")) else ""
+
+
+@post_only
+@requires("visits.view")
+def maintenance_report_step(request, pk):
+    """The foreman's "Approve and send to engineer" and the engineer's "Approve". Each is logged; the next person is notified."""
+    fr = _phone_report(request, pk)
+    step = STEPS.get(fr.status)
+    if not _next_step(request.user, fr) or request.POST.get("status") != fr.status:
+        raise PermissionDenied
+    _code, new, _button, action, tell = step
+    who = "foreman" if new == FieldReport.Status.ENGINEER else "engineer"
+    with transaction.atomic():
+        # The status in the filter makes two people pressing at once safe: only the first one moves the report on.
+        moved = FieldReport.objects.filter(pk=fr.pk, status=fr.status).update(status=new, **{f"{who}_by": request.user, f"{who}_at": timezone.now()})
+        if moved:
+            record(request.user, action, fr)
+            if tell:
+                what = f"{fr.visit.unit if fr.visit else fr} · {request.user}"
+                notify_report(fr, tell, new, f"Maintenance report approved by the foreman, waiting for your approval: {what}",
+                              f"تقرير صيانة وافق عليه رئيس العمال وينتظر موافقتك: {what}", actor=request.user)
+    messages.success(request, t("Saved successfully.") if moved else t("Someone else already did this step."))
+    return redirect("maintenance_report_view", pk=fr.pk)
+
+
+def _report_subject(fr):
+    unit = fr.visit.unit if fr.visit else None
+    return " – ".join(x for x in ("Maintenance report", unit.name if unit else fr.site or fr.client_name, fr.machine_model, date_format(fr.report_date, "j M Y")) if x)
+
+
+def _mailto(fr):
+    """A new email in the user's mail program (the new Outlook), with the client's address, subject and message filled in.
+    shortcut: a mailto link cannot carry the PDF, so the button downloads it to be dragged in; Microsoft Graph could attach it, if ever needed."""
+    client = fr.visit.client if fr.visit else None
+    name = client.name_en if client else fr.client_name or fr.site or "Sir/Madam"
+    name_ar = (client.name_ar or name) if client else name
+    unit = fr.visit.unit.name if fr.visit else fr.machine_model
+    body = (f"Dear {name},\n\nPlease find attached the maintenance report for {unit}, visit date {date_format(fr.report_date, 'j F Y')}.\n\n"
+            "Best regards,\nAladdin Sweiti Engineering Est. (ASEE)\n\n"
+            f"السادة {name_ar} المحترمين،\n\nمرفق تقرير الصيانة للوحدة {unit} بتاريخ {fr.report_date:%d/%m/%Y}.\n\n"
+            "مع التحية،\nمؤسسة علاء الدين السويطي الهندسية")
+    to = client.email if client and client.email else ""
+    return f"mailto:{quote(to)}?subject={quote(_report_subject(fr))}&body={quote(body)}"
+
+
+@requires("visits.view")
+def maintenance_report_pdf(request, pk):
+    """The approved report as a PDF, with every change made on the website; the phone's signed PDF follows it."""
+    fr = _phone_report(request, pk)
+    if fr.status != FieldReport.Status.APPROVED:
+        raise PermissionDenied
+    files = list((fr.visit or fr).attachments.all())
+    content = build_report_pdf(fr, report_view(fr.data, limits_for(unit=fr.visit.unit if fr.visit else None)),
+                               [a for a in files if a.kind == Attachment.Kind.PHOTO], next((a for a in files if a.kind == Attachment.Kind.REPORT), None))
+    if request.GET.get("email"):
+        record(request.user, "report_email_prepared", fr, _report_subject(fr))
+    response = HttpResponse(content, content_type="application/pdf")
+    response["Content-Disposition"] = f'attachment; filename="ASEE_Report_{fr.visit.number if fr.visit else fr.pk}.pdf"'
+    return response
 
 
 @requires("equipment.edit", "clients.edit")
