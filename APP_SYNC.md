@@ -1,0 +1,52 @@
+# Phone app connection
+
+The website side lives in `core/views/api.py`. The phone app (github.com/abedrrahman/hvac-maintenance-app) is the other side.
+All addresses below are under the website's address, which must be HTTPS when used from phones.
+
+## 1. Sign in — `POST /api/login/`
+
+Body (JSON): `{"username": "...", "password": "..."}`
+Answer: `{"token": "...", "name": "...", "language": "en|ar"}`
+
+- Keep the token on the phone and send it on every later request as the header `Authorization: Token <token>`.
+- One phone per user: signing in again replaces the old token.
+- 401 wrong password, 403 temporary password not changed yet, 429 too many failed tries (15 minutes).
+
+## 2. Download site data — `GET /api/sync/`
+
+Answer (JSON): `synced_at`, `clients`, `units`, `documents`, `visits`.
+
+- `units[]`: `id, name_en, name_ar, client_id, category, subtype, manufacturer, model, serial_number, project, location, qr_token, url, document_ids`
+- `documents[]`: `id, name_en, name_ar, type, language, url` — the url opens the file on the website (needs website sign-in).
+- `visits[]`: the user's open visits: `id, number, unit_id, scheduled_date, type, overdue`
+- A user without "See all records" gets only the units of visits assigned to them.
+- The whole list is sent every time; replace the phone's copy with it.
+
+## Offline manuals — `GET /api/documents/<id>/file/`
+
+The document's file, sent with the same token header. The app saves it on the phone the first time a manual is opened (or with "download all" on a unit) and opens the saved copy afterwards, with no signal. Each document in `/api/sync/` carries `file_name` and `size`; the size is part of the saved file's name, so a file replaced on the website is downloaded again. 404 when the user may not see the document.
+
+## Alarm Lookup — `GET /api/alarms/` and `GET /api/alarms/ask/`
+
+- `/api/alarms/?have=<version>`: the whole alarm list for use with no signal. Answer: `version`, `fields`, `alarms` (rows in the order of `fields`).
+  When the phone's version is current, `alarms` is `null`.
+- `/api/alarms/ask/?q=<question>&lang=ar|en&model=<optional model number>`: the website's assistant. Same answer as the website's Alarm Lookup page:
+  `text`, `alarms[] {code, name, controllers, effect, causes, steps[] {label, text}, source}`, `passages[] {snippet, source}`.
+
+## 3. Upload a finished report — `POST /api/reports/`
+
+Multipart form:
+
+- `report`: the report as JSON. Used fields: `id` (the app's report id, required), `unit_id` (from the download) or `serial_no`,
+  `visit_id` (optional, an open visit from the download), `date`, `maintenance_type`, `technician`, `general_notes`,
+  `required_maintenance`, `checklist_items[] {label_en, value}`, `attention_notes[] {unit_no, note}`, `materials[] {description, qty, unit}`
+- `pdf`: the exported PDF (optional but expected)
+- `photo`: site photos, repeatable, up to 30
+
+Answer: `{"visit_id", "number", "url", "already_uploaded"}` — 201 the first time, 200 when the same `id` is sent again.
+
+- The report becomes a completed visit on the unit (the given open visit is completed, otherwise a new one is created).
+- If the unit is not on the website (or not visible to this user), the report is still kept: the answer has `"pending": true`
+  and the report waits under Maintenance Reports → Daily reports until someone presses "Add site and unit". The phone treats it as uploaded.
+- Safe to retry: the same `id` never creates a second visit. Upload when the phone is online, and mark the report as uploaded only on 200/201.
+- 401: sign in again. 400: bad data or file type. 403: the role cannot complete visits.

@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ title }}</h1><div class="sub"><a href="{% url 'report_list' %}">{% t "Reports" %}</a> · {% t "Results" %}: {{ count }}</div></div>
+  <div class="actions">
+    <a class="btn" href="?{% if query %}{{ query }}&amp;{% endif %}export=xlsx">{% icon "download" 16 %} Excel</a>
+    <a class="btn" href="?{% if query %}{{ query }}&amp;{% endif %}export=pdf">{% icon "download" 16 %} PDF</a>
+  </div>
+</div>
+{% include "_filters.html" %}
+<div class="card flush">{% include "_table.html" %}</div>
+{% endblock %}

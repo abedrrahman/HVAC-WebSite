@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}{% t "Maintenance Calendar" %}{% endblock %}
+{% block content %}
+<div class="page-head"><h1>{% t "Maintenance Calendar" %}</h1>
+  <div class="actions">
+    <a class="btn" href="?view=list&amp;quick=week">{% t "Due this week" %}</a>
+    <a class="btn" href="?view=list&amp;quick=month">{% t "Due this month" %}</a>
+    {% if request.user|can:"visits.manage" %}<a class="btn primary" href="{% url 'visit_new' %}">{% icon "plus" 16 %} {% t "Add Visit" %}</a>{% endif %}
+  </div>
+</div>
+<details class="card" {% if query %}open{% endif %}><summary style="cursor:pointer;font-weight:500">{% t "Filters" %}</summary><div style="margin-top:12px">
+{% include "_filters.html" with keep_view=view keep_date=anchor|date:"Y-m-d" %}</div></details>
+<div class="cal-toolbar">
+  <div class="actions">
+    <a class="btn small" href="?view={{ view }}&amp;date={{ prev }}&amp;{{ query }}" aria-label="{% t 'Previous' %}">{% t "Previous" %}</a>
+    <a class="btn small" href="?view={{ view }}&amp;date={{ today }}&amp;{{ query }}">{% t "Today" %}</a>
+    <a class="btn small" href="?view={{ view }}&amp;date={{ next }}&amp;{{ query }}" aria-label="{% t 'Next' %}">{% t "Next" %}</a>
+    <b style="margin-inline-start:8px">{% if view == "day" %}{{ anchor|longdate }}{% elif view == "week" %}{{ range_start|longdate }} – {{ range_end|longdate }}{% else %}{{ anchor|date:"F Y" }}{% endif %}</b>
+  </div>
+  <div class="seg">{% for key, label in views %}<a class="{% if view == key %}active{% endif %}" href="?view={{ key }}&amp;date={{ anchor|date:'Y-m-d' }}&amp;{{ query }}">{% t label %}</a>{% endfor %}</div>
+</div>
+<div class="legend">{% for key, label in statuses %}{% badge key label %}{% endfor %}</div>
+
+{% if view == "month" or view == "week" %}
+<div class="cal-scroll"><div class="cal {{ view }}">
+  {% for d in weekdays %}<div class="dow" title="{{ d|date:'l' }}">{{ d|date:"D" }}</div>{% endfor %}
+  {% for day in days %}
+  <div class="day{% if view == 'month' and not day.in_month %} other{% endif %}{% if day.today %} today{% endif %}">
+    <a class="d" href="?view=day&amp;date={{ day.date|date:'Y-m-d' }}&amp;{{ query }}">{{ day.date|date:"j" }}</a>
+    {% for v in day.visits %}
+    <a class="event s-{{ v.display_status }}" href="{{ v.get_absolute_url }}"
+       title="{{ v.client.name }} · {{ v.unit.name }} · {{ v.unit.category.name }} · {{ v.unit.serial_number|default:'—' }} · {{ v.contract.number|default:'—' }} · {{ v.scheduled_date|longdate }} · {{ v.technician|default:'—' }} · {{ v.status_label|tr }}">
+      <b>{{ v.client.name }}</b><span class="sub">{{ v.unit.name }}</span>
+      {% if view == "week" %}<span class="sub">{{ v.unit.category.name }}</span><span class="sub">{{ v.unit.serial_number|default:"—" }} · {{ v.contract.number|default:"—" }}</span><span class="sub">{{ v.technician|default:"—" }}</span><span class="sub">{{ v.status_label|tr }}</span>{% endif %}
+    </a>
+    {% endfor %}
+  </div>
+  {% endfor %}
+</div></div>
+{% else %}
+{% if view == "day" %}{% for day in days %}{% include "_calendar_rows.html" with rows=day.visits %}{% endfor %}
+{% else %}{% include "_calendar_rows.html" with rows=list_visits %}{% endif %}
+{% endif %}
+{% endblock %}

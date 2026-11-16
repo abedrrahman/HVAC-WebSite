@@ -1,0 +1,24 @@
+{% extends "base.html" %}
+{% block title %}{% t "Delete" %}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{% t "Delete" %} {{ kind }}: {{ obj.name }}</h1></div></div>
+<div class="card narrow">
+  {% if linked %}
+  <div class="alert warning">{% t "This item has linked records. Nothing linked will be deleted; reassign them or archive the item." %}</div>
+  <ul>{% for label, n in counts %}<li>{{ label }}: <b>{{ n }}</b></li>{% endfor %}</ul>
+  <h3>{% t "Option 1: Move the linked records, then delete" %}</h3>
+  <form method="post">{% csrf_token %}
+    <input type="hidden" name="choice" value="reassign">
+    <div class="field"><label for="target">{% t "Move to" %}</label>
+      <select id="target" name="target" required><option value="">—</option>{% for x in targets %}<option value="{{ x.pk }}">{{ x.name }}</option>{% endfor %}</select></div>
+    <button class="btn danger">{% t "Move and delete" %}</button>
+  </form>
+  <h3>{% t "Option 2: Archive" %}</h3>
+  <p>{% t "Existing records keep their link and it is no longer offered for new records." %}</p>
+  <form method="post">{% csrf_token %}<input type="hidden" name="choice" value="archive"><button class="btn">{% t "Archive" %}</button></form>
+  {% else %}
+  <p>{% t "No records are linked to this item, so it can be deleted safely." %}</p>
+  <form method="post" class="form-actions">{% csrf_token %}<input type="hidden" name="choice" value="delete"><button class="btn danger">{% t "Delete" %}</button><a class="btn" href="{{ back }}">{% t "Cancel" %}</a></form>
+  {% endif %}
+</div>
+{% endblock %}

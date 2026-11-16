@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}{% t "Maintenance Report" %} · {{ fr }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{% t "Maintenance Report" %}</h1>
+    <div class="sub">{% if fr.visit %}<a href="{{ fr.visit.get_absolute_url }}">{{ fr.visit.number }}</a> · {{ fr.visit.client.name }} · {{ fr.visit.unit.name }}{% else %}{{ fr }} · {% t "Not in the database yet" %}{% endif %}</div></div>
+  <div class="actions">
+    {% if can_add %}<a class="btn primary" href="{% url 'maintenance_report_add' fr.pk %}">{% icon "plus" 16 %} {% t "Add site and unit" %}</a>{% endif %}
+    {% if can_edit %}<a class="btn" href="{% url 'maintenance_report_edit' fr.pk %}">{% icon "edit" 16 %} {% t "Edit" %}</a>{% endif %}
+    {% if pdf %}<a class="btn" href="{% url 'attachment_file' pdf.pk %}" target="_blank" rel="noopener">PDF</a>{% endif %}
+    <a class="btn" href="{% url 'maintenance_reports' %}{% if not fr.visit %}#daily{% endif %}">{% t "Maintenance Reports" %}</a>
+  </div>
+</div>
+
+<div class="readings">
+  <div class="reading"><span class="l">{% t "Client" %}</span><span class="v">{{ fr.visit.client.name|default:fr.client_name|default:"—" }}</span></div>
+  <div class="reading"><span class="l">{% t "Site" %}</span><span class="v">{{ fr.site|default:"—" }}</span></div>
+  <div class="reading"><span class="l">{% t "Equipment Model" %}</span><span class="v">{{ fr.machine_model|default:"—" }}</span></div>
+  <div class="reading"><span class="l">{% t "Serial Number" %}</span><span class="v">{{ fr.serial_no|default:"—" }}</span></div>
+  <div class="reading"><span class="l">{% t "Actual Visit Date" %}</span><span class="v">{{ fr.report_date|longdate }}</span></div>
+  <div class="reading"><span class="l">{% t "Visit Type" %}</span><span class="v">{{ fr.maintenance_type|default:"—"|tr }}</span></div>
+  <div class="reading"><span class="l">{% t "Assigned Technician" %}</span><span class="v">{{ view.technician|default:fr.uploaded_by|default:"—" }}</span></div>
+</div>
+
+{% if view.outside %}<div class="alert error" role="status">{% icon "alert" 16 %} {{ view.outside }} {% t "reading(s) outside the limits in the manuals. They are marked in red below." %}</div>{% endif %}
+{% for group in view.groups %}
+<div class="section-title">{% if group.kind == "general" %}{% t "General readings" %}{% elif group.kind == "compressor" %}{% t "Compressor" %} {{ group.number }}{% else %}{% t "Circuit" %} {{ group.number }}{% endif %}</div>
+<div class="readings">
+  {% for r in group.readings %}<div class="reading{% if r.bad %} bad{% endif %}"{% if r.source %} title="{{ r.source }}"{% endif %}><span class="l">{{ r.label }}{% if r.label_ar %} · <span lang="ar" dir="rtl">{{ r.label_ar }}</span>{% endif %}</span><span class="v">{{ r.value }}{% if r.unit %} <small>{{ r.unit }}</small>{% endif %}</span>
+    {% if r.bad %}<span class="limit">{% icon "alert" 14 %} {% t "Outside the limit" %}{% if r.limit %}: {{ r.limit }}{% endif %}</span>{% elif r.limit %}<span class="limit">{% t "Limit" %}: {{ r.limit }}</span>{% endif %}</div>{% endfor %}
+</div>
+{% with s=group.superheat %}{% if s %}
+<div class="card superheat">
+  <h2>{% t "Superheat" %}{% if group.kind == "circuit" %} · {% t "Circuit" %} {{ group.number }}{% endif %}</h2>
+  {% if s.problem %}
+  <div class="note">{% t s.problem %} ({{ s.refrigerant }} · {{ s.pressure }} {{ group.pressure_unit }} · {{ s.temp }} {{ group.temp_unit }})</div>
+  {% else %}
+  <div class="sh-value"><span class="n">{{ s.value }} <small>{{ s.unit }}</small></span> <span class="badge sh-{{ s.zone }}">{% t s.zone_label %}</span></div>
+  <div class="sh-meter" role="img" aria-label="{% t "Superheat" %} {{ s.value }} {{ s.unit }}: {% t s.zone_label %}">
+    <span class="sh-zone sh-low" style="width:{{ s.low_width }}%"></span><span class="sh-zone sh-normal" style="width:{{ s.normal_width }}%"></span><span class="sh-zone sh-high"></span>
+    <span class="sh-mark" style="inset-inline-start:{{ s.position }}%"></span>
+  </div>
+  <div class="sh-scale"><span>{% t "Low" %}</span><span>{% t "Normal" %}</span><span>{% t "High" %}</span></div>
+  <p class="meta">{{ s.refrigerant }} · {% t "Suction pressure" %} {{ s.pressure }} {{ group.pressure_unit }} → {% t "saturation temperature" %} {{ s.saturation }} {{ group.temp_unit }} · {% t "Suction temperature" %} {{ s.temp }} {{ group.temp_unit }}</p>
+  {% endif %}
+</div>
+{% endif %}{% endwith %}
+{% empty %}
+<div class="card"><div class="empty">{% t "This report has no readings." %}</div></div>
+{% endfor %}
+
+{% if view.sources %}
+<details class="limit-sources"><summary>{% t "Where the limits come from" %}</summary>
+  <ul>{% for s in view.sources %}<li>{{ s }}</li>{% endfor %}</ul>
+  <p>{% t "The manuals' limits are for a standard unit. A model or a single unit can have its own limits." %}
+    {% if fr.visit and request.user|can:"equipment.edit" %}<a href="{% url 'unit_limits' fr.visit.unit_id %}">{% t "Change the limits for this unit" %}</a>{% endif %}
+    {% if request.user|can:"settings.manage" %}· <a href="{% url 'reading_limits' %}">{% t "Reading limits" %}</a>{% endif %}</p>
+</details>
+{% endif %}
+
+{% if view.work or view.notes %}
+<div class="section-title">{% t "Notes" %}</div>
+<div class="readings wide">
+  {% if view.work %}<div class="reading"><span class="l">{% t "Actions Taken" %}</span><span class="v text">{{ view.work }}</span></div>{% endif %}
+  {% if view.notes %}<div class="reading"><span class="l">{% t "Notes" %}</span><span class="v text">{{ view.notes }}</span></div>{% endif %}
+</div>
+{% endif %}
+
+{% if view.attention %}
+<div class="section-title">{% t "Recommendations" %}</div>
+<div class="readings wide">
+  {% for a in view.attention %}<div class="reading"><span class="l">{{ a.unit_no|default:"—" }}</span><span class="v text">{{ a.note }}</span></div>{% endfor %}
+</div>
+{% endif %}
+
+{% if view.materials %}
+<div class="section-title">{% t "Parts Used" %}</div>
+<div class="readings">
+  {% for m in view.materials %}<div class="reading"><span class="l">{{ m.description }}</span><span class="v">{{ m.qty }} <small>{{ m.unit }}</small></span></div>{% endfor %}
+</div>
+{% endif %}
+
+<div class="section-title">{% t "Photos" %} ({{ photos|length }})</div>
+{% if photos %}
+<div class="gallery large">
+  {% for p in photos %}<figure><a href="{% url 'attachment_file' p.pk %}" target="_blank" rel="noopener"><img src="{% url 'attachment_file' p.pk %}" alt="{% t "Photos" %} {{ forloop.counter }}" loading="lazy"></a></figure>{% endfor %}
+</div>
+{% else %}<div class="card"><div class="empty">{% t "No images uploaded yet." %}</div></div>{% endif %}
+
+{% if edited %}
+<div class="note" style="margin-top:16px">{% t "This report was changed on the website after the phone sent it. The PDF does not include the changes." %}
+  {% if request.user|can:"settings.manage" %}<a href="{% url 'activity' %}">{% t "Activity Log" %}</a>{% endif %}</div>
+{% endif %}
+{% endblock %}

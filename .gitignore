@@ -1,0 +1,27 @@
+# Secrets and private data: never in the repository
+.env
+FIRST_LOGIN.txt
+.pgdata/
+private_files/
+backups/
+*PASSWORD*
+*password*
+
+# Business data and pictures that may show client details
+*.xlsx
+*.xls
+*.csv
+phone-screenshots/
+
+# Made on this PC, not source code
+.venv/
+__pycache__/
+*.log
+PHONE_ADDRESS.txt
+PR_LINK.txt
+graphify-out/
+
+# Claude Code: keep this project's own skill and hooks, not the copied design skills
+.claude/skills/*
+!.claude/skills/restart-app/
+.claude/settings.local.json

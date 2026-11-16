@@ -1,0 +1,101 @@
+{% extends "base.html" %}
+{% block title %}{% t "Dashboard" %}{% endblock %}
+{% block content %}
+<section class="country-hero dash-hero">
+  <div>
+    <div class="hero-date">{{ today|longdate }}</div>
+    <h1>{% t "Welcome" %}{% if request.LANGUAGE_CODE == 'ar' %}،{% else %},{% endif %} {{ request.user }}</h1>
+  </div>
+  <nav class="quick" aria-label="{% t 'Quick Access' %}">
+    {% if request.user|can:"documents.view" %}<a href="{% url 'alarm_lookup' %}">{% icon "wrench" 18 %} {% t "Alarm Lookup" %}</a>{% endif %}
+    {% if request.user|can:"visits.view" %}<a href="{% url 'calendar' %}">{% icon "calendar" 18 %} {% t "Maintenance Calendar" %}</a>{% endif %}
+    {% if request.user|can:"reports.view" %}<a href="{% url 'report_list' %}">{% icon "chart" 18 %} {% t "Reports" %}</a>{% endif %}
+  </nav>
+</section>
+{% if show_setup %}
+<div class="note">
+  <b>{% t "Getting started" %}:</b> {% t "Add subtypes and technical fields, then manufacturers and models, then clients and their equipment." %}
+  <a href="{% url 'catalog' %}">{% t "Categories & Subtypes" %}</a>
+</div>
+{% endif %}
+
+<div class="section-title">{% t "Needs Attention" %}</div>
+<div class="stats attention">
+  {% for label, n, url, ic, tone in attention_cards %}
+  <a class="stat {% if n %}{{ tone }}{% else %}good{% endif %}" href="{{ url }}"><div class="top">{% icon ic 20 %}</div><div class="n">{{ n }}</div><div class="l">{% t label %}</div></a>
+  {% endfor %}
+</div>
+
+<div class="section-title">{% t "Equipment Overview" %}</div>
+<div class="stats vivid">
+  {% for label, n, url, ic in equipment_cards %}
+  <a class="stat" href="{{ url }}"><div class="top">{% icon ic 20 %}</div><div class="n">{{ n }}</div><div class="l">{% t label %}</div></a>
+  {% endfor %}
+</div>
+
+<div class="section-title">{% t "Maintenance Trends" %}</div>
+<div class="grid dash-main">
+  <div class="card">
+    <h2>{% t "Visits per Month" %}</h2>
+    {% if has_visits %}
+    <div class="colchart">
+      {% for m in months %}
+      <div class="col{% if m.now %} now{% endif %}" tabindex="0" data-tip="{{ m.date|date:'F Y' }}: {{ m.n }} · {% t 'Completed' %} {{ m.done }}" aria-label="{{ m.date|date:'F Y' }}: {{ m.n }}">
+        <span class="cv">{% if m.peak or m.now %}{{ m.n }}{% endif %}</span>
+        <span class="cbar" style="height:{{ m.pct }}%"></span>
+        <span class="cl">{{ m.date|date:"M" }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    <details class="chart-table"><summary>{% t "Show as table" %}</summary>
+      <table><thead><tr><th>{% t "Month" %}</th><th>{% t "Visits" %}</th><th>{% t "Completed" %}</th></tr></thead>
+      <tbody>{% for m in months %}<tr><td>{{ m.date|date:"F Y" }}</td><td>{{ m.n }}</td><td>{{ m.done }}</td></tr>{% endfor %}</tbody></table>
+    </details>
+    {% else %}<div class="empty">{% t "No records found." %}</div>{% endif %}
+  </div>
+  <div class="card">
+    <h2>{% t "Visit Status" %}</h2>
+    {% if status_total %}
+    <div class="segbar" role="img" aria-label="{% for p in status_parts %}{% t p.label %} {{ p.n }}{% if not forloop.last %}, {% endif %}{% endfor %}">
+      {% for p in status_parts %}{% if p.n %}<span class="seg-{{ p.key }}" style="flex-grow:{{ p.n }}" data-tip="{% t p.label %}: {{ p.n }} ({{ p.pct }}%)"></span>{% endif %}{% endfor %}
+    </div>
+    <ul class="legend-list">
+      {% for p in status_parts %}<li><i class="sw seg-{{ p.key }}" aria-hidden="true"></i><span>{% t p.label %}</span><b>{{ p.n }}</b><span class="pct">{{ p.pct }}%</span></li>{% endfor %}
+    </ul>
+    {% else %}<div class="empty">{% t "No records found." %}</div>{% endif %}
+  </div>
+</div>
+
+<div class="section-title">{% t "Recent Activity" %}</div>
+<div class="grid dash-main">
+  <div class="card">
+    <nav class="tabs">
+      <a href="#overdue">{% t "Overdue" %}</a>
+      <a href="#upcoming">{% t "Upcoming" %}</a>
+      <a href="#expiring">{% t "Expiring Soon" %}</a>
+      <a href="#new-units">{% t "New Equipment" %}</a>
+      <a href="#new-docs">{% t "New Documents" %}</a>
+      <a href="#alerts">{% t "Notifications" %}</a>
+    </nav>
+    <ul id="overdue" class="tab-panel mini-list">{% for v in overdue %}<li><span><a href="{{ v.get_absolute_url }}">{{ v.unit.name }}</a><div class="meta">{{ v.client.name }} · {{ v.scheduled_date|longdate }}</div></span>{% badge v.display_status v.status_label %}</li>{% empty %}<li class="empty">{% icon "check" 18 %} {% t "Nothing overdue" %}</li>{% endfor %}</ul>
+    <ul id="upcoming" class="tab-panel mini-list">{% for v in upcoming %}<li><span><a href="{{ v.get_absolute_url }}">{{ v.unit.name }}</a><div class="meta">{{ v.client.name }} · {{ v.scheduled_date|longdate }}</div></span>{% badge v.display_status v.status_label %}</li>{% empty %}<li class="empty">{% t "No visits planned" %}</li>{% endfor %}</ul>
+    <ul id="expiring" class="tab-panel mini-list">{% for c in expiring %}<li><span><a href="{{ c.get_absolute_url }}">{{ c.number }}</a><div class="meta">{{ c.client.name }} · {{ c.end_date|longdate }}</div></span></li>{% empty %}<li class="empty">{% t "No records found." %}</li>{% endfor %}</ul>
+    <ul id="new-units" class="tab-panel mini-list">{% for u in recent_units %}<li><span><a href="{{ u.get_absolute_url }}">{{ u.name }}</a><div class="meta">{{ u.client.name }} · {{ u.category.name }}</div></span></li>{% empty %}<li class="empty">{% t "No records found." %}</li>{% endfor %}</ul>
+    <ul id="new-docs" class="tab-panel mini-list">{% for d in recent_docs %}<li><span><a href="{{ d.get_absolute_url }}">{{ d.name }}</a><div class="meta">{{ d.doc_type.name }} · {{ d.uploaded_at|longdate }}</div></span></li>{% empty %}<li class="empty">{% t "No records found." %}</li>{% endfor %}</ul>
+    <ul id="alerts" class="tab-panel mini-list">{% for n in notifications %}<li><span><a href="{{ n.target_url }}">{{ n.message }}</a><div class="meta">{{ n.created_at|longdate }}</div></span></li>{% empty %}<li class="empty">{% t "No records found." %}</li>{% endfor %}</ul>
+  </div>
+  <div class="card">
+    <h2>{% t "Maintenance Overview" %}</h2>
+    <ul class="mini-list summary">
+      {% for label, n, url, ic, tone in summary_cards %}<li><a href="{{ url }}">{% t label %}</a><b>{{ n }}</b></li>{% endfor %}
+    </ul>
+  </div>
+</div>
+
+<div class="section-title">{% t "Equipment Distribution" %}</div>
+<div class="grid three">
+  {% include "_bars.html" with heading="Equipment by Category" rows=by_category %}
+  {% include "_bars.html" with heading="Equipment by Country" rows=by_country %}
+  {% include "_bars.html" with heading="Equipment by Manufacturer" rows=by_manufacturer %}
+</div>
+{% endblock %}

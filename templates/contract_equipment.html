@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}{% t "Manage Equipment" %}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{% t "Manage Equipment" %}</h1><div class="sub">{{ c.number }} · {{ c.client.name }}</div></div></div>
+<form method="post" class="card flush">{% csrf_token %}
+  <input type="hidden" name="step" value="review">
+  <div class="actions" style="padding:12px 16px">
+    <button type="button" class="btn small" data-check-all="on">{% t "Select All Client Equipment" %}</button>
+    <button type="button" class="btn small" data-check-all="off">{% t "Clear Selection" %}</button>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th></th><th>{% t "Equipment Name" %}</th><th>{% t "Main Equipment Type" %}</th><th>{% t "Subtype" %}</th><th>{% t "Model" %}</th><th>{% t "Serial Number" %}</th><th>{% t "Notes" %}</th></tr></thead>
+    <tbody>
+    {% for u in units %}
+    <tr><td><input type="checkbox" name="units" value="{{ u.pk }}" aria-label="{{ u.name }}"{% if u.pk in chosen_ids %} checked{% endif %}{% if u.pk in conflicts %} disabled{% endif %}></td>
+      <td>{{ u.name }}</td><td>{{ u.category.name }}</td><td>{{ u.subtype.name|default:"—" }}</td><td>{{ u.model.model_number }}</td><td>{{ u.serial_number|default:"—" }}</td>
+      <td>{% if u.pk in conflicts %}{% badge "expiring" "On another contract" %} {{ conflicts|dict_get:u.pk }}{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="7"><div class="empty">{% t "This client has no equipment yet." %}</div></td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+  <div class="form-actions" style="padding:12px 16px"><button class="btn primary">{% t "Review Selection" %}</button><a class="btn" href="{{ c.get_absolute_url }}">{% t "Cancel" %}</a></div>
+</form>
+{% endblock %}

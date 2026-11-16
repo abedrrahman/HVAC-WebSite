@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ title }}</h1>{% if sub %}<div class="sub">{{ sub }}</div>{% endif %}</div>
+  <div class="actions">{% for a in actions %}<a class="btn{% if a.primary %} primary{% endif %}" href="{{ a.url }}">{% if a.icon %}{% icon a.icon 16 %} {% endif %}{{ a.label }}</a>{% endfor %}</div>
+</div>
+{% if compact %}
+<div class="site-tools"><div class="site-search">{% icon "search" 16 %}<input type="search" data-site-search placeholder="{% t 'Search' %}" aria-label="{% t 'Search' %}"></div></div>
+<div class="sites">
+  {% for c in cards %}
+  <a class="site-card" data-tone="{{ c.tone }}" href="{{ c.url }}" data-names="{{ c.names }}">
+    <span class="initial" aria-hidden="true">{{ c.name|first|upper }}</span>
+    <span class="site-text"><span class="site-name">{{ c.name }}</span><span class="meta">{{ c.meta }}</span></span>
+    <span class="go" aria-hidden="true">{% icon "arrow" 16 %}</span>
+  </a>
+  {% endfor %}
+</div>
+<div class="card" data-site-empty {% if cards %}hidden{% endif %}><div class="empty">{% t "No records found." %}</div></div>
+{% else %}
+<div class="countries{% if not feature_first %} even{% endif %}">
+  {% for c in cards %}
+  <a class="country-card" {% if c.code %}data-code="{{ c.code }}"{% else %}data-tone="{{ c.tone }}"{% endif %} href="{{ c.url }}" style="view-transition-name:{{ c.vt }}">
+    <span class="code" aria-hidden="true">{% if c.code %}{{ c.code }}{% else %}{% icon icon_name 56 %}{% endif %}</span>
+    <h2>{{ c.name }}</h2>
+    <div class="country-stats">{% for n, label in c.stats %}<div><b data-count>{{ n }}</b> {{ label }}</div>{% endfor %}</div>
+    <span class="go" aria-hidden="true">{% icon "arrow" 20 %}</span>
+  </a>
+  {% empty %}<div class="card"><div class="empty">{% t "No records found." %}</div></div>
+  {% endfor %}
+</div>
+{% endif %}
+{% endblock %}

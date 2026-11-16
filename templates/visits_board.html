@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}{% t "Maintenance Visits" %}{% endblock %}
+{% block content %}
+<div class="page-head"><h1>{% t "Maintenance Visits" %}</h1>
+  <div class="actions">
+    <a class="btn" href="{% url 'visit_list' %}?view=list">{% t "List View" %}</a>
+    {% if request.user|can:"visits.manage" %}<a class="btn primary" href="{% url 'visit_new' %}">{% icon "plus" 16 %} {% t "Add Visit" %}</a>{% endif %}
+  </div>
+</div>
+<details class="card" {% if filtered %}open{% endif %}><summary style="cursor:pointer;font-weight:500">{% t "Filters" %}</summary><div style="margin-top:12px">
+{% include "_filters.html" with filters=form keep_view="board" %}</div></details>
+<div class="board">
+  {% for key, label, visits, total in columns %}
+  <section class="column" data-column="{{ key }}">
+    <h2>{% t label %} <span class="count-pill">{{ total }}</span></h2>
+    {% for v in visits %}
+    <a class="visit-card" href="{{ v.get_absolute_url }}">
+      <span class="site-name">{{ v.unit.name }}</span>
+      <span class="meta">{{ v.client.name }}</span>
+      <span class="visit-foot"><span class="meta">{{ v.scheduled_date|longdate }}{% if v.technician %} · {{ v.technician }}{% endif %}</span>{% badge v.display_status v.status_label %}</span>
+    </a>
+    {% empty %}<div class="empty">{% icon "check" 18 %} {% if key == "overdue" %}{% t "Nothing overdue" %}{% elif key == "todo" %}{% t "No visits planned" %}{% elif key == "in_progress" %}{% t "Nothing in progress" %}{% else %}{% t "No completed visits yet" %}{% endif %}</div>
+    {% endfor %}
+  </section>
+  {% endfor %}
+</div>
+{% endblock %}

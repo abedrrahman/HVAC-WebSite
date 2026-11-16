@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head"><h1>{{ title }}</h1>
+  {% if role %}<div class="actions"><form method="post" action="{% url 'role_delete' role.pk %}" data-confirm="{% t 'Delete this record permanently?' %}">{% csrf_token %}<button class="btn danger">{% t "Delete" %}</button></form></div>{% endif %}
+</div>
+<form method="post" class="card narrow">{% csrf_token %}
+  {% include "_fields.html" %}
+  {% for group, perms in groups %}
+  <h3>{{ group }}</h3>
+  <div class="check-list">{% for p in perms %}<label><input type="checkbox" name="perm" value="{{ p.code }}"{% if p.on %} checked{% endif %}> {{ p.label }}</label>{% endfor %}</div>
+  {% endfor %}
+  <div class="form-actions" style="margin-top:16px"><button class="btn primary">{% t "Save" %}</button><a class="btn" href="{% url 'role_list' %}">{% t "Cancel" %}</a></div>
+</form>
+{% endblock %}

@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<div {% if code %}data-code="{{ code }}"{% else %}data-tone="{{ tone }}"{% endif %}>
+  <header class="country-hero" style="view-transition-name:{{ vt }}">
+    <span class="code" aria-hidden="true">{% if code %}{{ code }}{% else %}{% icon icon_name 72 %}{% endif %}</span>
+    <a class="back" href="{{ back_url }}"><span class="flip">{% icon "arrow" 16 %}</span> {{ back_label }}</a>
+    <h1>{{ title }}</h1>
+    <div class="country-stats">{% for n, label in stats %}<div><b data-count>{{ n }}</b> {{ label }}</div>{% endfor %}</div>
+  </header>
+  <div class="site-tools">
+    <div class="site-search">{% icon "search" 16 %}<input type="search" data-site-search placeholder="{% t 'Search' %}" aria-label="{% t 'Search' %}"></div>
+    {% if add %}<a class="btn primary" href="{{ add.url }}">{% icon "plus" 16 %} {{ add.label }}</a>{% endif %}
+  </div>
+  <div class="sites">
+    {% for i in items %}
+    <a class="site-card" href="{{ i.url }}" data-names="{{ i.names }}">
+      <span class="initial" aria-hidden="true">{% if i.icon %}{% icon i.icon 20 %}{% else %}{{ i.name|first|upper }}{% endif %}</span>
+      <span class="site-text"><span class="site-name">{{ i.name }}</span><span class="meta">{{ i.meta }}</span>{{ i.badge }}</span>
+      <span class="go" aria-hidden="true">{% icon "arrow" 16 %}</span>
+    </a>
+    {% endfor %}
+  </div>
+  <div class="card" data-site-empty {% if items %}hidden{% endif %}><div class="empty">{% t "No records found." %}</div></div>
+</div>
+{% endblock %}

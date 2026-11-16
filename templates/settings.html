@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}{% t "System Settings" %}{% endblock %}
+{% block content %}
+<div class="page-head"><h1>{% t "System Settings" %}</h1>
+  <div class="actions"><a class="btn" href="{% url 'catalog' %}">{% t "Categories & Subtypes" %}</a><a class="btn" href="{% url 'reading_limits' %}">{% t "Reading limits" %}</a><a class="btn" href="{% url 'activity' %}">{% t "Activity Log" %}</a></div>
+</div>
+<div class="grid two" style="align-items:start;margin-bottom:16px">
+  <div class="card"><h2>{% t "Reminder Settings" %}</h2>
+    <form method="post">{% csrf_token %}{% include "_fields.html" %}<button class="btn primary">{% t "Save" %}</button></form>
+  </div>
+  <div class="card"><h2>{% t "Background Jobs" %}</h2>
+    <dl class="specs" style="grid-template-columns:1fr">
+      <div><dt>{% t "Last reminder check" %}</dt><dd>{% if cfg.last_reminder_run %}{{ cfg.last_reminder_run|date:"Y-m-d H:i" }}{% else %}—{% endif %}</dd></div>
+      <div><dt>{% t "Last backup" %}</dt><dd>{% if cfg.last_backup_run %}{{ cfg.last_backup_run|date:"Y-m-d H:i" }}{% else %}—{% endif %}</dd></div>
+      <div><dt>{% t "Backup status" %}</dt><dd dir="ltr">{{ cfg.last_backup_status|default:"—" }}</dd></div>
+    </dl>
+    <form method="post" action="{% url 'run_reminders' %}" style="margin-top:12px">{% csrf_token %}<button class="btn">{% t "Run reminder check now" %}</button></form>
+    <h3>{% t "Suggested setup" %}</h3>
+    <p style="margin-top:0;color:var(--ink-2)">{% t "Optionally load the suggested subtypes and technical fields for Chillers, RTU, AHU, FCU and CCU. Everything stays editable, and existing items are not changed." %}</p>
+    <form method="post" action="{% url 'load_templates' %}">{% csrf_token %}<button class="btn">{% t "Load suggested subtypes and fields" %}</button></form>
+  </div>
+</div>
+<div class="grid two" style="align-items:start">
+  <div class="card"><div class="page-head" style="margin-bottom:8px"><h2 style="margin:0">{% t "Document Types" %}</h2><a class="btn small primary" href="{% url 'doctype_new' %}">{% icon "plus" 14 %} {% t "Add" %}</a></div>
+    <ul class="mini-list">{% for x in doctypes %}<li><a href="{% url 'doctype_edit' x.pk %}">{{ x.name }}</a>{% if not x.is_active %}{% badge "cancelled" "Inactive" %}{% endif %}</li>{% endfor %}</ul></div>
+  <div class="card"><div class="page-head" style="margin-bottom:8px"><h2 style="margin:0">{% t "Countries" %}</h2><a class="btn small primary" href="{% url 'country_new' %}">{% icon "plus" 14 %} {% t "Add" %}</a></div>
+    <ul class="mini-list">{% for x in countries %}<li><a href="{% url 'country_edit' x.pk %}">{{ x.name }}</a>{% if not x.is_active %}{% badge "cancelled" "Inactive" %}{% endif %}</li>{% endfor %}</ul></div>
+</div>
+{% endblock %}

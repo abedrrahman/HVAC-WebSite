@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}{{ model }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ model.model_number }}</h1><div class="sub"><a href="{{ model.manufacturer.get_absolute_url }}">{{ model.manufacturer.name }}</a> · {{ model.category.name }}{% if model.subtype %} · {{ model.subtype.name }}{% endif %}{% if not model.is_active %} {% badge "cancelled" "Archived" %}{% endif %}</div></div>
+  {% if request.user|can:"manufacturers.edit" %}
+  <div class="actions">
+    <a class="btn" href="{% url 'model_edit' model.pk %}">{% icon "edit" 16 %} {% t "Edit" %}</a>
+    <a class="btn" href="{% url 'model_specs' model.pk %}">{% t "Edit Technical Information" %}</a>
+    <a class="btn" href="{% url 'model_limits' model.pk %}">{% t "Reading limits" %}{% if model.reading_limits %} ✓{% endif %}</a>
+    <form method="post" action="{% url 'model_archive' model.pk %}">{% csrf_token %}<button class="btn">{% if model.is_active %}{% t "Archive" %}{% else %}{% t "Restore" %}{% endif %}</button></form>
+    <form method="post" action="{% url 'model_delete' model.pk %}" data-confirm="{% t 'Delete this record permanently?' %}">{% csrf_token %}<button class="btn danger">{% t "Delete" %}</button></form>
+  </div>
+  {% endif %}
+</div>
+{% if model.description %}<div class="card" style="white-space:pre-line">{{ model.description }}</div>{% endif %}
+<div class="card"><h2>{% t "General Technical Specifications" %}</h2>
+  {% if specs %}<dl class="specs">{% for s in specs %}<div><dt>{{ s.label }}</dt><dd>{{ s.value|default:"—" }}</dd></div>{% endfor %}</dl>
+  {% else %}<div class="empty">{% t "No technical fields are configured for this equipment type yet." %}</div>{% endif %}
+</div>
+<div class="grid two" style="margin-bottom:16px">
+  <div class="card"><h2>{% t "Installed Units" %} ({{ units|length }})</h2>
+    <ul class="mini-list">{% for u in units %}<li><span><a href="{{ u.get_absolute_url }}">{{ u.name }}</a><div class="meta">{{ u.client.name }} · {{ u.serial_number|default:"—" }}</div></span></li>{% empty %}<li class="empty">{% t "No records found." %}</li>{% endfor %}</ul></div>
+  {% if documents is not None %}
+  <div class="card"><h2>{% t "Related Technical Documents" %}</h2>
+    <ul class="mini-list">{% for d in documents %}<li><span><a href="{{ d.get_absolute_url }}">{{ d.name }}</a><div class="meta">{{ d.doc_type.name }}</div></span></li>{% empty %}<li class="empty">{% t "No records found." %}</li>{% endfor %}</ul></div>
+  {% endif %}
+</div>
+<div class="card"><h2>{% t "Product Images" %}</h2>
+  <div class="gallery">{% for p in images %}<figure><a href="{% url 'attachment_file' p.pk %}" target="_blank" rel="noopener"><img src="{% url 'attachment_file' p.pk %}" alt="{{ model.model_number }}" loading="lazy"></a></figure>{% empty %}<div class="empty">{% t "No images uploaded yet." %}</div>{% endfor %}</div>
+  {% if request.user|can:"manufacturers.edit" %}
+  <h3>{% t "Upload Image" %}</h3>
+  <form method="post" enctype="multipart/form-data" action="{% url 'model_image' model.pk %}" class="form-grid">{% csrf_token %}
+    {% include "_fields.html" with form=image_form %}
+    <div class="form-actions wide"><button class="btn primary">{% t "Upload" %}</button></div>
+  </form>
+  {% endif %}
+</div>
+{% endblock %}

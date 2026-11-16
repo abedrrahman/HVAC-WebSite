@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block content %}
+{% if back %}<a class="back-link" href="{{ back.0 }}"><span class="flip">{% icon "arrow" 16 %}</span> {{ back.1 }}</a>{% endif %}
+<div class="page-head">
+  <h1>{{ title }}</h1>
+  <div class="actions">
+    {% for a in actions %}<a class="btn{% if a.primary %} primary{% endif %}" href="{{ a.url }}">{% icon a.icon 16 %} {{ a.label }}</a>{% endfor %}
+  </div>
+</div>
+{% if filters %}{% include "_filters.html" %}{% endif %}
+{% if cards is not None %}
+<div class="sites">
+  {% for c in cards %}
+  <a class="site-card" href="{{ c.url }}">
+    <span class="initial" aria-hidden="true">{% icon c.icon 20 %}</span>
+    <span class="site-text"><span class="site-name">{{ c.name }}</span><span class="meta">{{ c.meta }}</span>{{ c.badge }}</span>
+    <span class="go" aria-hidden="true">{% icon "arrow" 16 %}</span>
+  </a>
+  {% empty %}<div class="card"><div class="empty">{{ table.empty }}</div></div>
+  {% endfor %}
+</div>
+{% endif %}
+{% if phone_cards %}
+<div class="sites phone-cards">
+  {% for c in phone_cards %}
+  <a class="site-card" href="{{ c.url }}">
+    <span class="initial" aria-hidden="true">{% icon c.icon 20 %}</span>
+    <span class="site-text"><span class="site-name">{{ c.name }}</span><span class="meta">{{ c.meta }}</span>{{ c.badge }}</span>
+    <span class="go" aria-hidden="true">{% icon "arrow" 16 %}</span>
+  </a>
+  {% endfor %}
+</div>
+{% endif %}
+<div class="card flush{% if cards is not None %} card-pager{% endif %}{% if phone_cards %} has-phone-cards{% endif %}">
+  {% if cards is None %}{% include "_table.html" %}{% endif %}
+  {% if page.paginator.num_pages > 1 %}
+  <div class="pagination">
+    {% if page.has_previous %}<a class="btn small" href="?{% if query %}{{ query }}&amp;{% endif %}page={{ page.previous_page_number }}">{% t "Previous" %}</a>{% endif %}
+    <span>{{ page.number }} / {{ page.paginator.num_pages }}</span>
+    {% if page.has_next %}<a class="btn small" href="?{% if query %}{{ query }}&amp;{% endif %}page={{ page.next_page_number }}">{% t "Next" %}</a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

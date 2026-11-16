@@ -1,0 +1,33 @@
+{% load static %}<!doctype html>
+<html lang="{{ request.LANGUAGE_CODE }}" dir="{% if request.LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
+<head>
+{% include "_head.html" %}
+<title>{% t "Sign in" %} · {% t "HVAC Manager" %}</title>
+</head>
+<body>
+{% include "_icons.html" %}
+<div class="login-page">
+  <div class="login-brand">
+    <img src="{% static 'logo-on-red.png' %}" alt="Aladdin Sweiti Engineering Est.">
+    <p>{% t "HVAC Manager" %}</p>
+  </div>
+  <main class="login-panel">
+  <div class="login-card">
+    <div class="lang">
+      {% if request.LANGUAGE_CODE == 'ar' %}<button class="iconbtn" type="button" data-lang="en">{% icon "globe" 18 %} English</button>
+      {% else %}<button class="iconbtn" type="button" data-lang="ar">{% icon "globe" 18 %} العربية</button>{% endif %}
+    </div>
+    <h1 style="margin-bottom:18px">{% t "Sign in" %}</h1>
+    {% for message in messages %}<div class="alert {{ message.tags }}">{{ message }}</div>{% endfor %}
+    {% if form.non_field_errors %}<div class="alert error">{% t "Incorrect username or password." %}</div>{% endif %}
+    <form method="post">{% csrf_token %}
+      <input type="hidden" name="next" value="{{ next }}">
+      {% include "_fields.html" %}
+      <button class="btn primary" style="width:100%;justify-content:center">{% t "Sign in" %}</button>
+    </form>
+  </div>
+  </main>
+</div>
+<script src="{% static 'app.js' %}"></script>
+</body>
+</html>

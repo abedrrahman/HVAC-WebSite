@@ -1,0 +1,8 @@
+<div class="table-wrap"><table>
+  <thead><tr><th>{% t "Visit Number" %}</th><th>{% t "Scheduled Date" %}</th><th>{% t "Actual Visit Date" %}</th><th>{% t "Visit Type" %}</th><th>{% t "Contract Number" %}</th><th>{% t "Assigned Technician" %}</th><th>{% t "Visit Status" %}</th></tr></thead>
+  <tbody>
+  {% for v in visits %}
+  <tr><td><a href="{{ v.get_absolute_url }}">{{ v.number }}</a></td><td>{{ v.scheduled_date|longdate }}</td><td>{{ v.actual_date|longdate }}</td><td>{{ v.get_visit_type_display|tr }}</td><td>{{ v.contract.number|default:"—" }}</td><td>{{ v.technician|default:"—" }}</td><td>{% badge v.display_status v.status_label %}</td></tr>
+  {% empty %}<tr><td colspan="7"><div class="empty">{% t "No records found." %}</div></td></tr>{% endfor %}
+  </tbody>
+</table></div>

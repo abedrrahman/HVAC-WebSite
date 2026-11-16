@@ -1,0 +1,8 @@
+{% for hidden in form.hidden_fields %}{{ hidden }}{% endfor %}
+{% if form.sections %}
+{% for title, fields in form.section_rows %}
+<fieldset class="form-section"><legend>{% t title %}</legend><div class="section-fields">{% for field in fields %}{% include "_field.html" %}{% endfor %}</div></fieldset>
+{% endfor %}
+{% else %}
+{% for field in form.visible_fields %}{% include "_field.html" %}{% endfor %}
+{% endif %}

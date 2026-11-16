@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}{% t "Search" %}{% endblock %}
+{% block content %}
+<div class="page-head"><h1>{% t "Search" %}</h1></div>
+{% include "_filters.html" with filters=form %}
+{% if searched %}
+  <p style="color:var(--ink-3)">{% t "Results" %}: {{ total }}</p>
+  {% for label, rows in groups %}{% if rows %}
+  <div class="section-title">{% t label %} ({{ rows|length }})</div>
+  <div class="sites" data-tone="{% if label == 'Equipment' %}5{% elif label == 'Clients' %}4{% elif label == 'Documents' %}1{% elif label == 'Contracts' %}3{% else %}0{% endif %}">{% for url, name, meta in rows %}<a class="site-card" href="{{ url }}"><span class="initial" aria-hidden="true">{% if label == "Equipment" %}{% icon "equipment" 20 %}{% elif label == "Clients" %}{% icon "clients" 20 %}{% elif label == "Documents" %}{% icon "file" 20 %}{% elif label == "Contracts" %}{% icon "contract" 20 %}{% else %}{% icon "calendar" 20 %}{% endif %}</span><span class="site-text"><span class="site-name">{{ name }}</span><span class="meta">{{ meta }}</span></span><span class="go" aria-hidden="true">{% icon "arrow" 16 %}</span></a>{% endfor %}</div>
+  {% endif %}{% endfor %}
+  {% if not total %}<div class="card"><div class="empty">{% t "No records found." %}</div></div>{% endif %}
+{% else %}
+  <div class="card"><div class="empty">{% t "Type part of a name, serial number, model, client, document, contract or visit number." %}</div></div>
+{% endif %}
+{% endblock %}

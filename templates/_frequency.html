@@ -1,0 +1,1 @@
+{% if s.mode == "manual" %}{% t "Manually selected dates" %} ({{ s.manual_dates|length }}){% elif s.interval_value == 1 and s.interval_unit == "month" %}{% t "Monthly" %}{% else %}{% t "Every" %} {{ s.interval_value }} {% if s.interval_unit == "month" %}{% t "Months" %}{% elif s.interval_unit == "week" %}{% t "Weeks" %}{% else %}{% t "Days" %}{% endif %}{% endif %}

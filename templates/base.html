@@ -1,0 +1,53 @@
+{% load static %}<!doctype html>
+<html lang="{{ request.LANGUAGE_CODE }}" dir="{% if request.LANGUAGE_CODE == 'ar' %}rtl{% else %}ltr{% endif %}">
+<head>
+{% include "_head.html" %}
+<title>{% block title %}{{ title }}{% endblock %} · {% t "HVAC Manager" %}</title>
+</head>
+<body>
+{% include "_icons.html" %}
+<a class="skip" href="#content">{% t "Skip to content" %}</a>
+<div class="shell">
+  <aside class="sidebar">
+    <a class="brand" href="{% url 'dashboard' %}"><img class="brand-full" src="{% static 'logo.png' %}" alt="Aladdin Sweiti Engineering Est." width="172" height="49"><img class="brand-mark" src="{% static 'logo-mark.png' %}" alt="Aladdin Sweiti Engineering Est." width="40" height="40"><span class="t">{% t "HVAC Manager" %}</span></a>
+    <nav class="nav" aria-label="{% t 'Main navigation' %}">
+      {% for item in nav %}
+      <a href="{{ item.url }}" class="{% if item.active %}active{% endif %}" title="{% t item.label %}">
+        {% icon item.icon 20 %}<span class="label">{% t item.label %}</span>
+        {% if item.icon == "bell" and unread_count %}<span class="count">{{ unread_count }}</span>{% endif %}
+      </a>
+      {% endfor %}
+    </nav>
+  </aside>
+  <div class="main">
+    <header class="topbar">
+      <button class="iconbtn" type="button" data-toggle-sidebar aria-label="{% t 'Toggle menu' %}">{% icon "menu" 20 %}</button>
+      <form class="search" action="{% url 'search' %}" role="search">
+        {% icon "search" 16 %}
+        <input type="search" name="q" value="{{ request.GET.q }}" placeholder="{% t 'Search equipment, serial numbers, clients, documents...' %}" aria-label="{% t 'Search' %}">
+      </form>
+      <span class="spacer"></span>
+      {% if request.LANGUAGE_CODE == 'ar' %}
+      <button class="iconbtn" type="button" data-lang="en">{% icon "globe" 18 %} English</button>
+      {% else %}
+      <button class="iconbtn" type="button" data-lang="ar">{% icon "globe" 18 %} العربية</button>
+      {% endif %}
+      <button class="iconbtn" type="button" data-theme-toggle aria-label="{% t 'Dark mode' %}" title="{% t 'Dark mode' %}">{% icon "moon" 18 %}</button>
+      <a class="iconbtn" href="{% url 'notifications' %}" aria-label="{% t 'Notifications' %}">{% icon "bell" 18 %}{% if unread_count %}<span class="badge s-overdue">{{ unread_count }}</span>{% endif %}</a>
+      <a class="iconbtn desktop-only" href="{% url 'password_change' %}" title="{% t 'Change Password' %}"><span class="avatar" aria-hidden="true">{{ request.user.username|first|upper }}</span>{{ request.user }}</a>
+      <form method="post" action="{% url 'logout' %}" style="margin:0">{% csrf_token %}
+        <button class="iconbtn" aria-label="{% t 'Sign out' %}" title="{% t 'Sign out' %}">{% icon "logout" 18 %}</button>
+      </form>
+    </header>
+    <main class="content" id="content" tabindex="-1">
+      {% for message in messages %}<div class="alert {{ message.tags }}" role="status">{{ message }}</div>{% endfor %}
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+</div>
+<nav class="bottom-nav" aria-label="{% t 'Main navigation' %}">
+  {% for item in nav %}{% if item.short %}<a href="{{ item.url }}" class="{% if item.active %}active{% endif %}">{% icon item.icon 22 %}<span>{% t item.short %}</span></a>{% endif %}{% endfor %}
+</nav>
+<script src="{% static 'app.js' %}"></script>
+</body>
+</html>

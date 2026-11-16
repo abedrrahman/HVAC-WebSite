@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}{{ m.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div style="display:flex;gap:12px;align-items:center">
+    {% if m.logo %}<img src="{% url 'attachment_file' m.logo.pk %}" alt="" style="height:48px;max-width:120px;object-fit:contain">{% endif %}
+    <div><h1>{{ m.name }}</h1><div class="sub">{{ m.country.name|default:"" }}{% if not m.is_active %} {% badge "cancelled" "Archived" %}{% endif %}</div></div>
+  </div>
+  {% if request.user|can:"manufacturers.edit" %}
+  <div class="actions">
+    <a class="btn primary" href="{% url 'model_new' %}?manufacturer={{ m.pk }}">{% icon "plus" 16 %} {% t "Add Model" %}</a>
+    <a class="btn" href="{% url 'manufacturer_edit' m.pk %}">{% icon "edit" 16 %} {% t "Edit" %}</a>
+    <form method="post" action="{% url 'manufacturer_archive' m.pk %}">{% csrf_token %}<button class="btn">{% if m.is_active %}{% t "Archive" %}{% else %}{% t "Restore" %}{% endif %}</button></form>
+    <form method="post" action="{% url 'manufacturer_delete' m.pk %}" data-confirm="{% t 'Delete this record permanently?' %}">{% csrf_token %}<button class="btn danger">{% t "Delete" %}</button></form>
+  </div>
+  {% endif %}
+</div>
+<div class="card"><dl class="specs">
+  <div><dt>{% t "Manufacturer Name" %}</dt><dd>{{ m.name_en }}</dd></div>
+  <div><dt>{% t "Arabic Name" %}</dt><dd>{{ m.name_ar|default:"—" }}</dd></div>
+  <div><dt>{% t "Website" %}</dt><dd>{% if m.website %}<a href="{{ m.website }}" target="_blank" rel="noopener noreferrer">{{ m.website }}</a>{% else %}—{% endif %}</dd></div>
+  <div><dt>{% t "Contact Information" %}</dt><dd style="white-space:pre-line">{{ m.contact_info|default:"—" }}</dd></div>
+  <div><dt>{% t "Related Equipment Categories" %}</dt><dd>{% for c in m.categories.all %}<span class="tag">{{ c.name }}</span>{% empty %}—{% endfor %}</dd></div>
+</dl>
+{% if m.description %}<h3>{% t "Description" %}</h3><p style="white-space:pre-line;margin:0">{{ m.description }}</p>{% endif %}</div>
+<div class="card flush"><h2>{% t "Models" %}</h2>
+  <div class="table-wrap"><table>
+    <thead><tr><th>{% t "Model Number" %}</th><th>{% t "Main Equipment Type" %}</th><th>{% t "Subtype" %}</th><th>{% t "Installed Units" %}</th></tr></thead>
+    <tbody>{% for x in models %}<tr><td><a href="{{ x.get_absolute_url }}">{{ x.model_number }}</a></td><td>{{ x.category.name }}</td><td>{{ x.subtype.name|default:"—" }}</td><td>{{ x.n }}</td></tr>
+    {% empty %}<tr><td colspan="4"><div class="empty">{% t "No records found." %}</div></td></tr>{% endfor %}</tbody>
+  </table></div>
+</div>
+{% endblock %}

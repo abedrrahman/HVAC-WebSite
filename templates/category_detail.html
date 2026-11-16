@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}{{ cat.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ cat.name }}</h1><div class="sub"><a href="{% url 'catalog' %}">{% t "Equipment Categories & Subtypes" %}</a>{% if not cat.is_active %} {% badge "cancelled" "Archived" %}{% endif %}</div></div>
+  <div class="actions">
+    <a class="btn" href="{% url 'category_edit' cat.pk %}">{% icon "edit" 16 %} {% t "Edit" %}</a>
+    <a class="btn danger" href="{% url 'category_delete' cat.pk %}">{% t "Delete" %}</a>
+  </div>
+</div>
+{% if cat.description %}<div class="card">{{ cat.description }}</div>{% endif %}
+
+<div class="card flush">
+  <div class="page-head" style="padding:14px 16px 0;margin-bottom:10px"><h2 style="margin:0">{% t "Subtypes" %}</h2><a class="btn small primary" href="{% url 'subtype_new' %}?category={{ cat.pk }}">{% icon "plus" 14 %} {% t "Add Subtype" %}</a></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>{% t "Name (English)" %}</th><th>{% t "Name (Arabic)" %}</th><th>{% t "Equipment Units" %}</th><th>{% t "Status" %}</th><th></th></tr></thead>
+    <tbody>
+    {% for s in subtypes %}
+    <tr><td>{{ s.name_en }}</td><td>{{ s.name_ar|default:"—" }}</td><td>{{ s.n }}</td>
+      <td>{% if s.is_active %}{% badge "completed" "Active" %}{% else %}{% badge "cancelled" "Inactive" %}{% endif %}</td>
+      <td><div class="actions">
+        <a class="btn small" href="{% url 'subtype_edit' s.pk %}">{% t "Edit" %}</a>
+        <form method="post" action="{% url 'subtype_toggle' s.pk %}">{% csrf_token %}<button class="btn small">{% if s.is_active %}{% t "Deactivate" %}{% else %}{% t "Activate" %}{% endif %}</button></form>
+        <a class="btn small danger" href="{% url 'subtype_delete' s.pk %}">{% t "Delete" %}</a>
+      </div></td></tr>
+    {% empty %}<tr><td colspan="5"><div class="empty">{% t "No records found." %}</div></td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</div>
+
+<div class="card flush">
+  <div class="page-head" style="padding:14px 16px 0;margin-bottom:10px"><h2 style="margin:0">{% t "Technical Fields" %}</h2><a class="btn small primary" href="{% url 'field_new' cat.pk %}">{% icon "plus" 14 %} {% t "Add Technical Field" %}</a></div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>{% t "Name (English)" %}</th><th>{% t "Name (Arabic)" %}</th><th>{% t "Field type" %}</th><th>{% t "Measurement units" %}</th><th>{% t "Applies to" %}</th><th>{% t "Status" %}</th><th></th></tr></thead>
+    <tbody>
+    {% for x in fields %}
+    <tr><td>{{ x.name_en }}{% if x.required %} <span class="req" style="color:var(--bad)">*</span>{% endif %}</td><td>{{ x.name_ar|default:"—" }}</td><td>{{ x.get_field_type_display|tr }}</td><td dir="ltr">{{ x.units|default:"—" }}</td>
+      <td>{% if x.subtype %}{{ x.subtype.name }}{% else %}{% t "All subtypes" %}{% endif %}</td>
+      <td>{% if x.is_active %}{% badge "completed" "Active" %}{% else %}{% badge "cancelled" "Inactive" %}{% endif %}</td>
+      <td><div class="actions">
+        <form method="post" action="{% url 'field_move' x.pk 'up' %}">{% csrf_token %}<button class="btn small" aria-label="{% t 'Move up' %}" title="{% t 'Move up' %}">↑</button></form>
+        <form method="post" action="{% url 'field_move' x.pk 'down' %}">{% csrf_token %}<button class="btn small" aria-label="{% t 'Move down' %}" title="{% t 'Move down' %}">↓</button></form>
+        <a class="btn small" href="{% url 'field_edit' cat.pk x.pk %}">{% t "Edit" %}</a>
+        <form method="post" action="{% url 'field_delete' x.pk %}" data-confirm="{% t 'Remove this field?' %}">{% csrf_token %}<button class="btn small danger">{% t "Remove" %}</button></form>
+      </div></td></tr>
+    {% empty %}<tr><td colspan="7"><div class="empty">{% t "No technical fields are configured for this equipment type yet." %}</div></td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</div>
+{% endblock %}

@@ -1,0 +1,13 @@
+<details class="filter-box" open data-filter-box>
+<summary class="btn">{% icon "search" 16 %} {% t "Filters" %}</summary>
+<form class="filters" method="get">
+  {% for field in filters.visible_fields %}
+  <div class="field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}</div>
+  {% endfor %}
+  {% if keep_view %}<input type="hidden" name="view" value="{{ keep_view }}"><input type="hidden" name="date" value="{{ keep_date }}">{% endif %}
+  <div class="btns">
+    <button class="btn primary">{% t "Apply" %}</button>
+    <a class="btn" href="{{ request.path }}{% if keep_view %}?view={{ keep_view }}{% endif %}">{% t "Clear" %}</a>
+  </div>
+</form>
+</details>

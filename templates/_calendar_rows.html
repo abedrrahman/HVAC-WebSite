@@ -1,0 +1,8 @@
+<div class="card flush"><div class="table-wrap"><table>
+  <thead><tr><th>{% t "Scheduled Date" %}</th><th>{% t "Client" %}</th><th>{% t "Equipment Name" %}</th><th>{% t "Equipment Type" %}</th><th>{% t "Serial Number" %}</th><th>{% t "Contract Number" %}</th><th>{% t "Assigned Technician" %}</th><th>{% t "Visit Status" %}</th></tr></thead>
+  <tbody>
+  {% for v in rows %}
+  <tr><td><a href="{{ v.get_absolute_url }}">{{ v.scheduled_date|longdate }}</a></td><td>{{ v.client.name }}</td><td>{{ v.unit.name }}</td><td>{{ v.unit.category.name }}</td><td>{{ v.unit.serial_number|default:"—" }}</td><td>{{ v.contract.number|default:"—" }}</td><td>{{ v.technician|default:"—" }}</td><td>{% badge v.display_status v.status_label %}</td></tr>
+  {% empty %}<tr><td colspan="8"><div class="empty">{% t "No visits in this period." %}</div></td></tr>{% endfor %}
+  </tbody>
+</table></div></div>

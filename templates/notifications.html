@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}{% t "Notifications" %}{% endblock %}
+{% block content %}
+<div class="page-head"><h1>{% t "Notifications" %}</h1>
+  <div class="actions">{% if unread %}<form method="post" action="{% url 'notifications_read_all' %}">{% csrf_token %}<button class="btn">{% t "Mark all as read" %}</button></form>{% endif %}</div>
+</div>
+<nav class="tabs" style="margin-bottom:12px">
+  <a class="{% if show == 'unread' %}active{% endif %}" href="?show=unread">{% t "Unread" %} ({{ unread }})</a>
+  <a class="{% if show == 'read' %}active{% endif %}" href="?show=read">{% t "Read" %}</a>
+  <a class="{% if show == 'all' %}active{% endif %}" href="?show=all">{% t "All" %}</a>
+</nav>
+<div class="card">
+  <ul class="mini-list">
+    {% for n in page %}
+    <li>
+      <span style="{% if not n.read_at %}font-weight:500{% endif %}">
+        <a href="{{ n.target_url }}">{{ n.message }}</a>
+        <div class="meta">{{ n.get_kind_display|tr }} · {{ n.created_at|longdate }}</div>
+      </span>
+      {% if not n.read_at %}<form method="post" action="{% url 'notification_read' n.pk %}">{% csrf_token %}<button class="btn small">{% t "Mark as read" %}</button></form>{% endif %}
+    </li>
+    {% empty %}<li class="empty">{% t "No notifications." %}</li>{% endfor %}
+  </ul>
+  {% if page.paginator.num_pages > 1 %}
+  <div class="pagination">
+    {% if page.has_previous %}<a class="btn small" href="?show={{ show }}&amp;page={{ page.previous_page_number }}">{% t "Previous" %}</a>{% endif %}
+    <span>{{ page.number }} / {{ page.paginator.num_pages }}</span>
+    {% if page.has_next %}<a class="btn small" href="?show={{ show }}&amp;page={{ page.next_page_number }}">{% t "Next" %}</a>{% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

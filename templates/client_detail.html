@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{{ client.name }}{% endblock %}
+{% block content %}
+<div data-code="{{ client.country.code }}">
+  <header class="country-hero" style="view-transition-name:country-{{ client.country_id }}">
+    <span class="code" aria-hidden="true">{{ client.country.code }}</span>
+    <a class="back" href="{% url 'client_country' client.country_id %}"><span class="flip">{% icon "arrow" 16 %}</span> {{ client.country.name }}</a>
+    <h1>{{ client.name }}</h1>
+    <div class="country-stats"><div><b data-count>{{ unit_count }}</b> {% t "Equipment Units" %}</div>{% if client.city %}<div>{{ client.city }}</div>{% endif %}{% if not client.is_active %}<div>{% badge "cancelled" "Archived" %}</div>{% endif %}</div>
+  </header>
+</div>
+<div class="page-head">
+  <div class="actions">
+    {% if request.user|can:"equipment.edit" %}<a class="btn primary" href="{% url 'unit_new' %}?client={{ client.pk }}">{% icon "plus" 16 %} {% t "Add Equipment" %}</a>{% endif %}
+    {% if request.user|can:"contracts.edit" %}<a class="btn" href="{% url 'contract_new' %}?client={{ client.pk }}">{% icon "plus" 16 %} {% t "Add Contract" %}</a>{% endif %}
+    {% if request.user|can:"clients.edit" %}
+    <a class="btn" href="{% url 'client_edit' client.pk %}">{% icon "edit" 16 %} {% t "Edit" %}</a>
+    <form method="post" action="{% url 'client_archive' client.pk %}">{% csrf_token %}<button class="btn">{% if client.is_active %}{% t "Archive" %}{% else %}{% t "Restore" %}{% endif %}</button></form>
+    <form method="post" action="{% url 'client_delete' client.pk %}" data-confirm="{% t 'Delete this record permanently?' %}">{% csrf_token %}<button class="btn danger">{% t "Delete" %}</button></form>
+    {% endif %}
+  </div>
+</div>
+<nav class="tabs">
+  <a href="#general">{% t "General Information" %}</a>
+  <a href="#equipment">{% t "Equipment List" %} ({{ unit_count }})</a>
+  {% if contracts is not None %}<a href="#contracts">{% t "Maintenance Contracts" %} ({{ contracts|length }})</a>{% endif %}
+  {% if history is not None %}<a href="#history">{% t "Maintenance History" %} ({{ history|length }})</a>{% endif %}
+  <a href="#documents">{% t "Technical Documents" %} ({{ documents|length }})</a>
+  <a href="#contact">{% t "Contact Information" %}</a>
+  <a href="#notes">{% t "Notes" %}</a>
+</nav>
+<section id="general" class="tab-panel card"><dl class="specs">
+  <div><dt>{% t "Client Name" %}</dt><dd>{{ client.name_en }}</dd></div>
+  {% if client.name_ar %}<div><dt>{% t "Arabic Client Name" %}</dt><dd>{{ client.name_ar }}</dd></div>{% endif %}
+  <div><dt>{% t "Country" %}</dt><dd>{{ client.country.name }}</dd></div>
+  {% if client.city %}<div><dt>{% t "City" %}</dt><dd>{{ client.city }}</dd></div>{% endif %}
+  {% if client.address %}<div><dt>{% t "Address" %}</dt><dd>{{ client.address }}</dd></div>{% endif %}
+</dl></section>
+<section id="equipment" class="tab-panel">
+  {% for cat, units in groups.items %}
+  <div class="card flush"><h2>{{ cat }} ({{ units|length }})</h2>
+    <div class="table-wrap"><table>
+      <thead><tr><th>{% t "Equipment Name" %}</th><th>{% t "Project" %}</th><th>{% t "Subtype" %}</th><th>{% t "Manufacturer" %}</th><th>{% t "Model" %}</th><th>{% t "Serial Number" %}</th><th>{% t "Installation Location" %}</th><th>{% t "Equipment Status" %}</th></tr></thead>
+      <tbody>{% for u in units %}<tr><td><a href="{{ u.get_absolute_url }}">{{ u.name }}</a></td><td>{{ u.project|default:"—" }}</td><td>{{ u.subtype.name|default:"—" }}</td><td>{{ u.model.manufacturer.name }}</td><td>{{ u.model.model_number }}</td><td>{{ u.serial_number|default:"—" }}</td><td>{{ u.location|default:"—" }}</td><td>{% badge u.status u.get_status_display %}</td></tr>{% endfor %}</tbody>
+    </table></div>
+  </div>
+  {% empty %}<div class="card"><div class="empty">{% t "No records found." %}</div></div>{% endfor %}
+</section>
+{% if contracts is not None %}
+<section id="contracts" class="tab-panel card">
+  <ul class="mini-list">{% for c in contracts %}<li><span><a href="{{ c.get_absolute_url }}">{{ c.number }}</a> — {{ c.title }}<div class="meta">{{ c.start_date|longdate }} → {{ c.end_date|longdate }}</div></span>{% badge c.display_status c.status_label %}</li>{% empty %}<li class="empty">{% t "No records found." %}</li>{% endfor %}</ul>
+</section>
+{% endif %}
+{% if history is not None %}
+<section id="history" class="tab-panel card">
+  <ul class="mini-list">{% for v in history %}<li><span><a href="{{ v.get_absolute_url }}">{{ v.number }}</a> — {{ v.unit.name }}<div class="meta">{{ v.actual_date|longdate }}{% if v.contract %} · {{ v.contract.number }}{% endif %}</div></span>{% badge v.display_status v.status_label %}</li>{% empty %}<li class="empty">{% t "No records found." %}</li>{% endfor %}</ul>
+</section>
+{% endif %}
+<section id="documents" class="tab-panel card">
+  <ul class="mini-list">{% for row in documents %}<li><span><a href="{{ row.doc.get_absolute_url }}">{{ row.doc.name }}</a><div class="meta">{{ row.doc.doc_type.name }} · {{ row.source }}</div></span></li>{% empty %}<li class="empty">{% t "No records found." %}</li>{% endfor %}</ul>
+</section>
+<section id="contact" class="tab-panel card">
+  {% if client.contact_person or client.phone or client.email %}<dl class="specs">
+  {% if client.contact_person %}<div><dt>{% t "Contact Person" %}</dt><dd>{{ client.contact_person }}</dd></div>{% endif %}
+  {% if client.phone %}<div><dt>{% t "Phone Number" %}</dt><dd dir="ltr">{{ client.phone }}</dd></div>{% endif %}
+  {% if client.email %}<div><dt>{% t "Email" %}</dt><dd><a href="mailto:{{ client.email }}">{{ client.email }}</a></dd></div>{% endif %}
+  </dl>{% else %}<div class="empty">{% t "No contact details yet." %}{% if request.user|can:"clients.edit" %} <a href="{% url 'client_edit' client.pk %}">{% t "Add contact details" %}</a>{% endif %}</div>{% endif %}
+</section>
+<section id="notes" class="tab-panel card">{% if client.notes %}<p style="white-space:pre-line;margin:0">{{ client.notes }}</p>{% else %}<div class="empty">{% t "No notes yet." %}</div>{% endif %}</section>
+{% endblock %}

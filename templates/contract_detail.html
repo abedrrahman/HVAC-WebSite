@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% block title %}{{ c.number }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ c.number }} {% badge c.display_status c.status_label %}</h1><div class="sub">{{ c.title }} · <a href="{{ c.client.get_absolute_url }}">{{ c.client.name }}</a></div></div>
+  {% if request.user|can:"contracts.edit" %}
+  <div class="actions">
+    {% if c.status == "draft" or c.status == "suspended" %}<form method="post" action="{% url 'contract_action' c.pk 'activate' %}">{% csrf_token %}<button class="btn primary">{% t "Activate" %}</button></form>{% endif %}
+    <a class="btn" href="{% url 'contract_edit' c.pk %}">{% icon "edit" 16 %} {% t "Edit" %}</a>
+    <a class="btn" href="{% url 'contract_renew' c.pk %}">{% t "Renew" %}</a>
+    {% if c.status == "active" %}<form method="post" action="{% url 'contract_action' c.pk 'suspend' %}" data-confirm="{% t 'Suspend this contract? Future visits will be cleared or cancelled.' %}">{% csrf_token %}<button class="btn">{% t "Suspend" %}</button></form>{% endif %}
+    {% if c.status != "terminated" %}<form method="post" action="{% url 'contract_action' c.pk 'terminate' %}" data-confirm="{% t 'Terminate this contract? Future visits will be cleared or cancelled. History is kept.' %}">{% csrf_token %}<button class="btn danger">{% t "Terminate" %}</button></form>{% endif %}
+  </div>
+  {% endif %}
+</div>
+<nav class="tabs">
+  <a href="#info">{% t "Contract Information" %}</a>
+  <a href="#equipment">{% t "Covered Equipment" %} ({{ unit_rows|length }})</a>
+  {% if request.user|can:"schedules.view" %}<a href="#schedules">{% t "Maintenance Schedules" %}</a>{% endif %}
+  {% if request.user|can:"visits.view" %}<a href="#visits">{% t "Maintenance Visits" %}</a>{% endif %}
+  <a href="#files">{% t "Contract Documents" %}</a>
+</nav>
+<section id="info" class="tab-panel card">
+  <dl class="specs">
+    <div><dt>{% t "Client" %}</dt><dd>{{ c.client.name }}</dd></div>
+    <div><dt>{% t "Contract Start Date" %}</dt><dd>{{ c.start_date|longdate }}</dd></div>
+    <div><dt>{% t "Contract End Date" %}</dt><dd>{{ c.end_date|longdate }}</dd></div>
+    <div><dt>{% t "Contract Duration" %}</dt><dd>{{ duration }} {% t "Months" %}</dd></div>
+    <div><dt>{% t "Contract Value" %}</dt><dd>{% if c.value is not None %}{{ c.value }} {{ c.currency }}{% else %}—{% endif %}</dd></div>
+    <div><dt>{% t "Contract Status" %}</dt><dd>{% badge c.display_status c.status_label %}</dd></div>
+    {% if c.renewed_from %}<div><dt>{% t "Renewal of" %}</dt><dd><a href="{{ c.renewed_from.get_absolute_url }}">{{ c.renewed_from.number }}</a></dd></div>{% endif %}
+    {% for r in renewals %}<div><dt>{% t "Renewed as" %}</dt><dd><a href="{{ r.get_absolute_url }}">{{ r.number }}</a></dd></div>{% endfor %}
+  </dl>
+  {% if c.description %}<h3>{% t "Contract Description" %}</h3><p style="white-space:pre-line">{{ c.description }}</p>{% endif %}
+  {% if c.notes %}<h3>{% t "Additional Notes" %}</h3><p style="white-space:pre-line">{{ c.notes }}</p>{% endif %}
+</section>
+<section id="equipment" class="tab-panel card flush">
+  {% if request.user|can:"contracts.edit" %}<div class="actions" style="padding:12px 16px 0"><a class="btn small primary" href="{% url 'contract_equipment' c.pk %}">{% t "Manage Equipment" %}</a></div>{% endif %}
+  <div class="table-wrap"><table>
+    <thead><tr><th>{% t "Equipment Name" %}</th><th>{% t "Main Equipment Type" %}</th><th>{% t "Model" %}</th><th>{% t "Serial Number" %}</th><th>{% t "Frequency" %}</th><th>{% t "Schedule level" %}</th><th>{% t "Next Maintenance Visit" %}</th></tr></thead>
+    <tbody>
+    {% for row in unit_rows %}
+    <tr><td><a href="{{ row.unit.get_absolute_url }}">{{ row.unit.name }}</a></td><td>{{ row.unit.category.name }}</td><td>{{ row.unit.model.model_number }}</td><td>{{ row.unit.serial_number|default:"—" }}</td>
+      <td>{% if row.schedule %}{% include "_frequency.html" with s=row.schedule %}{% else %}—{% endif %}</td>
+      <td>{% if not row.schedule %}{% t "No schedule" %}{% elif row.schedule.scope == "unit" %}{% t "Individual equipment schedule" %}{% else %}{% t "General contract schedule" %}{% endif %}</td>
+      <td>{% if row.next %}<a href="{{ row.next.get_absolute_url }}">{{ row.next.scheduled_date|longdate }}</a>{% else %}—{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="7"><div class="empty">{% t "No equipment is assigned to this contract yet." %}</div></td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+  {% if removed %}<div style="padding:12px 16px"><h3 style="margin-top:0">{% t "Previously covered" %}</h3>
+    <ul class="mini-list">{% for l in removed %}<li><a href="{{ l.unit.get_absolute_url }}">{{ l.unit.name }}</a><span class="meta">{{ l.added_at|longdate }} → {{ l.removed_at|longdate }}</span></li>{% endfor %}</ul></div>{% endif %}
+</section>
+{% if request.user|can:"schedules.view" %}
+<section id="schedules" class="tab-panel card flush">
+  {% if c.status == "draft" %}<div class="note" style="margin:12px 16px 0">{% t "Visits are generated when the contract is active." %}</div>{% endif %}
+  {% if request.user|can:"schedules.manage" %}<div class="actions" style="padding:12px 16px 0"><a class="btn small primary" href="{% url 'schedule_new' c.pk %}?scope=general">{% icon "plus" 14 %} {% t "Add General Schedule" %}</a><a class="btn small" href="{% url 'schedule_new' c.pk %}?scope=unit">{% icon "plus" 14 %} {% t "Add Individual Schedule" %}</a></div>{% endif %}
+  <div class="table-wrap"><table>
+    <thead><tr><th>{% t "Schedule level" %}</th><th>{% t "Equipment Unit" %}</th><th>{% t "Frequency" %}</th><th>{% t "First visit date" %}</th><th>{% t "Assigned Engineer" %}</th><th>{% t "Assigned Technician" %}</th><th>{% t "Status" %}</th><th></th></tr></thead>
+    <tbody>
+    {% for s in schedules %}
+    <tr><td>{{ s.get_scope_display|tr }}</td><td>{{ s.unit.name|default:"—" }}</td><td>{% include "_frequency.html" with s=s %}</td><td>{{ s.start_date|longdate }}</td><td>{{ s.engineer|default:"—" }}</td><td>{{ s.technician|default:"—" }}</td>
+      <td>{% if s.is_active %}{% badge "completed" "Active" %}{% else %}{% badge "cancelled" "Inactive" %}{% endif %}</td>
+      <td>{% if request.user|can:"schedules.manage" %}<div class="actions"><a class="btn small" href="{% url 'schedule_edit' c.pk s.pk %}">{% t "Edit" %}</a>
+        {% if s.is_active %}<form method="post" action="{% url 'schedule_delete' s.pk %}" data-confirm="{% t 'Remove this schedule? Untouched future visits are cleared; completed visits are kept.' %}">{% csrf_token %}<button class="btn small danger">{% t "Remove" %}</button></form>{% endif %}</div>{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="8"><div class="empty">{% t "No records found." %}</div></td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endif %}
+{% if request.user|can:"visits.view" %}
+<section id="visits" class="tab-panel card flush">{% include "_visits_table.html" with visits=visits %}</section>
+{% endif %}
+<section id="files" class="tab-panel card">
+  <ul class="mini-list">{% for a in attachments %}<li><a href="{% url 'attachment_file' a.pk %}?download=1">{{ a.original_name }}</a><span class="meta">{{ a.size|filesize }} · {{ a.uploaded_at|longdate }}</span></li>{% empty %}<li class="empty">{% t "No records found." %}</li>{% endfor %}</ul>
+  {% if request.user|can:"contracts.edit" %}
+  <h3>{% t "Upload" %}</h3>
+  <form method="post" enctype="multipart/form-data" action="{% url 'contract_attach' c.pk %}" class="form-grid">{% csrf_token %}
+    {% include "_fields.html" with form=attachment_form %}
+    <div class="form-actions wide"><button class="btn primary">{% t "Upload" %}</button></div>
+  </form>
+  {% endif %}
+</section>
+{% endblock %}

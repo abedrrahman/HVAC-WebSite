@@ -1,0 +1,7 @@
+<div class="card"><h2>{% t heading %}</h2>
+  <div class="bars">
+    {% for r in rows %}
+    <div class="bar" tabindex="0" data-tip="{{ r.label }}: {{ r.n }} ({{ r.share }}%)"><span class="name">{{ r.label }}</span><span class="track"><span class="fill" style="width:{{ r.pct }}%"></span></span><span class="num">{{ r.n }}</span></div>
+    {% empty %}<div class="empty">{% t "No records found." %}</div>{% endfor %}
+  </div>
+</div>

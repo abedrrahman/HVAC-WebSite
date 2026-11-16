@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="page-head"><div><h1>{{ title }}</h1>{% if subject %}<div class="sub">{{ subject }}</div>{% endif %}</div></div>
+<div class="card narrow">
+  {% if intro %}<div class="note">{{ intro }}</div>{% endif %}
+  <form method="post"{% if multipart or form.is_multipart %} enctype="multipart/form-data"{% endif %} novalidate>{% csrf_token %}
+    {% if form.non_field_errors %}<div class="alert error">{{ form.non_field_errors }}</div>{% endif %}
+    {% include "_fields.html" %}
+    <div class="form-actions">
+      <button class="btn primary">{{ submit }}</button>
+      <a class="btn" href="{{ back }}">{% t "Cancel" %}</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

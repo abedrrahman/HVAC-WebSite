@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}{{ doc.name }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ doc.name }}</h1><div class="sub">{{ doc.doc_type.name }}{% if doc.is_archived %} {% badge "cancelled" "Archived" %}{% endif %}</div></div>
+  <div class="actions">
+    <a class="btn primary" href="{% url 'document_file' doc.pk %}?download=1">{% icon "download" 16 %} {% t "Download" %}</a>
+    {% if can_edit %}<a class="btn" href="{% url 'document_edit' doc.pk %}">{% icon "edit" 16 %} {% t "Edit" %}</a>{% endif %}
+    {% if request.user|can:"documents.manage" %}
+    <form method="post" action="{% url 'document_archive' doc.pk %}">{% csrf_token %}<button class="btn">{% if doc.is_archived %}{% t "Restore" %}{% else %}{% t "Archive" %}{% endif %}</button></form>
+    <form method="post" action="{% url 'document_delete' doc.pk %}" data-confirm="{% t 'Delete this record permanently?' %}">{% csrf_token %}<button class="btn danger">{% t "Delete" %}</button></form>
+    {% endif %}
+  </div>
+</div>
+<div class="grid two" style="margin-bottom:16px">
+  <div class="card"><h2>{% t "Document Information" %}</h2>
+    <dl class="specs" style="grid-template-columns:1fr">
+      <div><dt>{% t "Manufacturer" %}</dt><dd>{{ doc.manufacturer.name|default:"—" }}</dd></div>
+      <div><dt>{% t "Model" %}</dt><dd>{{ doc.model.model_number|default:"—" }}</dd></div>
+      <div><dt>{% t "Language" %}</dt><dd>{{ doc.get_language_display|tr }}</dd></div>
+      <div><dt>{% t "Revision Number" %}</dt><dd>{{ doc.revision|default:"—" }}</dd></div>
+      <div><dt>{% t "Upload Date" %}</dt><dd>{{ doc.uploaded_at|longdate }}</dd></div>
+      <div><dt>{% t "Uploaded By" %}</dt><dd>{{ doc.uploaded_by|default:"—" }}</dd></div>
+      <div><dt>{% t "File" %}</dt><dd dir="ltr">{{ doc.original_name }} ({{ doc.size|filesize }})</dd></div>
+      <div><dt>{% t "Tags" %}</dt><dd>{% for x in tags %}<span class="tag">{{ x }}</span>{% empty %}—{% endfor %}</dd></div>
+    </dl>
+    {% if doc.description %}<h3>{% t "Description" %}</h3><p style="white-space:pre-line;margin:0">{{ doc.description }}</p>{% endif %}
+  </div>
+  <div class="card"><h2>{% t "Assignments" %}</h2>
+    <p style="margin-top:0;color:var(--ink-2)">{% t "Available to equipment units now:" %} <b>{{ reach }}</b></p>
+    <ul class="mini-list">
+      {% for row in assignments %}
+      <li><span>{{ row.label }}{% if row.a.unit %}<div class="meta">{{ row.a.unit.client.name }}</div>{% endif %}</span>
+        {% if can_edit %}<form method="post" action="{% url 'assignment_remove' row.a.pk %}" data-confirm="{% t 'Remove this assignment? The document itself is kept.' %}">{% csrf_token %}<button class="btn small">{% t "Remove" %}</button></form>{% endif %}</li>
+      {% empty %}<li class="empty">{% t "Not assigned" %}</li>{% endfor %}
+    </ul>
+    {% if can_edit %}
+    <details class="action-box"><summary>{% t "Add Assignment" %}</summary>
+      <form method="post" action="{% url 'assignment_add' doc.pk %}">{% csrf_token %}
+        {% include "_fields.html" with form=assign_form %}
+        <button class="btn primary">{% t "Save" %}</button>
+      </form>
+    </details>
+    {% endif %}
+  </div>
+</div>
+<div class="card"><h2>{% t "Preview" %}</h2>
+  {% if is_image %}<img class="preview-img" src="{% url 'document_file' doc.pk %}" alt="{{ doc.name }}">
+  {% elif can_frame %}<a class="btn primary mobile-only" href="{% url 'document_file' doc.pk %}" target="_blank" rel="noopener">{% icon "file" 16 %} {% t "Open full screen" %}</a>{# phone browsers do not show PDFs inside a page #}
+  <iframe class="preview" src="{% url 'document_file' doc.pk %}" title="{{ doc.name }}"></iframe>
+  {% else %}<div class="empty">{% t "This file type cannot be previewed in the browser. Please download it." %}</div>{% endif %}
+</div>
+{% endblock %}

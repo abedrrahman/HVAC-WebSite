@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}{% t "Alarm Lookup" %}{% endblock %}
+{% block content %}
+<div class="chat" data-chat data-url="{% url 'alarm_ask' %}" data-error="{% t 'Something went wrong. Please try again.' %}">
+  <section class="country-hero dash-hero">
+    <div><h1>{% t "Alarm Lookup" %}</h1><div class="hero-date">{% t "Results come only from the manuals in this app." %}</div></div>
+  </section>
+  <div class="chat-log" data-chat-log aria-live="polite">
+    <div class="msg bot"><div class="bubble">
+      <p>{% t "Hello. Describe the problem or type an alarm code, and I will search the manuals and alarm lists stored in this system." %}</p>
+      <div class="chips">
+        <button type="button" class="chip" data-ask>{% t "Compressor high pressure" %}</button>
+        <button type="button" class="chip" data-ask>{% t "Low water flow" %}</button>
+        <button type="button" class="chip" data-ask>{% t "Fan does not start" %}</button>
+      </div>
+    </div></div>
+  </div>
+  <form class="chat-form" data-chat-form>
+    <div class="field"><label for="alarm-model">{% t "Model (optional)" %}</label>
+      <input id="alarm-model" name="model" list="alarm-models" value="{{ model_text }}" autocomplete="off" dir="ltr">
+      <datalist id="alarm-models">{% for m in models %}<option value="{{ m.model_number }}"></option>{% endfor %}</datalist></div>
+    <div class="field grow"><label for="alarm-q">{% t "Describe the problem or type an alarm code" %}</label>
+      <input id="alarm-q" name="q" maxlength="300" autocomplete="off" dir="auto" required></div>
+    <button class="btn primary">{% icon "arrow" 16 %} {% t "Send" %}</button>
+  </form>
+</div>
+{% endblock %}

@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}{{ unit.name }}{% endblock %}
+{% block content %}
+<div data-tone="{{ tone }}">
+  <header class="country-hero" style="view-transition-name:type-{{ unit.category_id }}">
+    <span class="code" aria-hidden="true">{% icon "equipment" 72 %}</span>
+    <a class="back" href="{% if unit.subtype %}{% url 'unit_subtype' unit.category_id unit.subtype_id %}{% else %}{% url 'unit_type' unit.category_id %}{% endif %}"><span class="flip">{% icon "arrow" 16 %}</span> {% if unit.subtype %}{{ unit.subtype.name }}{% else %}{{ unit.category.name }}{% endif %}</a>
+    <h1>{{ unit.name }}</h1>
+    <div class="hero-facts"><a href="{{ unit.client.get_absolute_url }}">{{ unit.client.name }}</a> · <a href="{% url 'unit_type' unit.category_id %}">{{ unit.category.name }}</a> · <bdi dir="ltr">{{ unit.model.model_number }}</bdi> {% badge unit.status unit.get_status_display %}{% if not unit.is_active %} {% badge "cancelled" "Archived" %}{% endif %}</div>
+  </header>
+</div>
+<div class="page-head">
+  <div class="actions">
+    {% if request.user|can:"equipment.edit" %}
+    <a class="btn" href="{% url 'unit_edit' unit.pk %}">{% icon "edit" 16 %} {% t "Edit" %}</a>
+    <a class="btn" href="{% url 'unit_specs' unit.pk %}">{% t "Edit Technical Information" %}</a>
+    <a class="btn" href="{% url 'unit_limits' unit.pk %}">{% t "Reading limits" %}{% if unit.reading_limits %} ✓{% endif %}</a>
+    {% endif %}
+    {% if request.user|can:"visits.manage" %}<a class="btn" href="{% url 'visit_new' %}?unit={{ unit.pk }}">{% icon "plus" 16 %} {% t "Add Visit" %}</a>{% endif %}
+    {% if request.user|can:"equipment.delete" %}
+    <form method="post" action="{% url 'unit_archive' unit.pk %}">{% csrf_token %}<button class="btn">{% if unit.is_active %}{% t "Archive" %}{% else %}{% t "Restore" %}{% endif %}</button></form>
+    <form method="post" action="{% url 'unit_delete' unit.pk %}" data-confirm="{% t 'Delete this record permanently?' %}">{% csrf_token %}<button class="btn danger">{% t "Delete" %}</button></form>
+    {% endif %}
+  </div>
+</div>
+<nav class="tabs">
+  <a href="#general">{% t "General Information" %}</a>
+  <a href="#technical">{% t "Technical Information" %}</a>
+  {% if documents is not None %}<a href="#documents">{% t "Documents" %} ({{ documents|length }})</a>{% endif %}
+  <a href="#maintenance">{% t "Maintenance" %}</a>
+  <a href="#images">{% t "Equipment Images" %}</a>
+  <a href="#qr">{% t "QR Code" %}</a>
+</nav>
+
+<section id="general" class="tab-panel card">
+  <dl class="specs">
+    <div><dt>{% t "Main Equipment Type" %}</dt><dd>{{ unit.category.name }}</dd></div>
+    <div><dt>{% t "Subtype" %}</dt><dd>{{ unit.subtype.name|default:"—" }}</dd></div>
+    <div><dt>{% t "Manufacturer" %}</dt><dd>{% if request.user|can:"manufacturers.view" %}<a href="{{ unit.model.manufacturer.get_absolute_url }}">{{ unit.model.manufacturer.name }}</a>{% else %}{{ unit.model.manufacturer.name }}{% endif %}</dd></div>
+    <div><dt>{% t "Model" %}</dt><dd>{% if request.user|can:"manufacturers.view" %}<a href="{{ unit.model.get_absolute_url }}">{{ unit.model.model_number }}</a>{% else %}{{ unit.model.model_number }}{% endif %}</dd></div>
+    <div><dt>{% t "Serial Number" %}</dt><dd>{{ unit.serial_number|default:"—" }}</dd></div>
+    <div><dt>{% t "Project" %}</dt><dd>{{ unit.project|default:"—" }}</dd></div>
+    <div><dt>{% t "Client" %}</dt><dd>{{ unit.client.name }}</dd></div>
+    <div><dt>{% t "Country" %}</dt><dd>{{ unit.client.country.name }}</dd></div>
+    <div><dt>{% t "Installation Location" %}</dt><dd>{{ unit.location|default:"—" }}</dd></div>
+    <div><dt>{% t "Installation Date" %}</dt><dd>{{ unit.installed_on|longdate }}</dd></div>
+    <div><dt>{% t "Warranty Start Date" %}</dt><dd>{{ unit.warranty_start|longdate }}</dd></div>
+    <div><dt>{% t "Warranty End Date" %}</dt><dd>{{ unit.warranty_end|longdate }}</dd></div>
+    <div><dt>{% t "Equipment Status" %}</dt><dd>{% badge unit.status unit.get_status_display %}</dd></div>
+  </dl>
+  {% if unit.notes %}<h3>{% t "Additional Notes" %}</h3><p style="white-space:pre-line">{{ unit.notes }}</p>{% endif %}
+</section>
+
+<section id="technical" class="tab-panel card">
+  {% if specs %}
+  <dl class="specs">
+    {% for s in specs %}<div><dt>{{ s.label }}</dt><dd>{{ s.value|default:"—" }}{% if s.from_model %} <span class="tag">{% t "From model" %}</span>{% endif %}</dd></div>{% endfor %}
+  </dl>
+  {% else %}<div class="empty">{% t "No technical fields are configured for this equipment type yet." %}</div>{% endif %}
+</section>
+
+{% if documents is not None %}
+<section id="documents" class="tab-panel card flush">
+  <div style="padding:12px 16px;display:flex;flex-wrap:wrap;gap:8px">
+    {% if request.user|can:"documents.upload" %}<a class="btn primary" href="{% url 'unit_document_add' unit.pk %}">{% icon "file" 16 %} {% t "Add document" %}</a>{% endif %}
+    <a class="btn" href="{% url 'alarm_lookup' %}?model_pk={{ unit.model_id }}">{% icon "wrench" 16 %} {% t "Alarm Lookup" %}</a>
+  </div>
+  <div class="table-wrap"><table>
+    <thead><tr><th>{% t "Document Name" %}</th><th>{% t "Document Type" %}</th><th>{% t "Language" %}</th><th>{% t "Availability" %}</th><th>{% t "Original Assignment" %}</th><th></th></tr></thead>
+    <tbody>
+    {% for row in documents %}
+      <tr><td><a href="{{ row.doc.get_absolute_url }}">{{ row.doc.name }}</a></td><td>{{ row.doc.doc_type.name }}</td><td>{{ row.doc.get_language_display|tr }}</td>
+      <td>{% if row.inherited %}{% badge "scheduled" "Inherited" %}{% else %}{% badge "active" "Direct" %}{% endif %}</td><td>{{ row.source }}</td>
+      <td><a href="{% url 'document_file' row.doc.pk %}?download=1">{% t "Download" %}</a></td></tr>
+    {% empty %}<tr><td colspan="6"><div class="empty">{% t "No records found." %}</div></td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</section>
+{% endif %}
+
+<section id="maintenance" class="tab-panel">
+  <div class="grid two" style="margin-bottom:16px">
+    <div class="card"><h2>{% t "Active Maintenance Contract" %}</h2>
+      {% if active_contract %}
+      <dl class="specs" style="grid-template-columns:1fr">
+        <div><dt>{% t "Contract Number" %}</dt><dd><a href="{{ active_contract.get_absolute_url }}">{{ active_contract.number }}</a></dd></div>
+        <div><dt>{% t "Contract End Date" %}</dt><dd>{{ active_contract.end_date|longdate }}</dd></div>
+        {% if schedule %}<div><dt>{% t "Maintenance Schedule" %}</dt><dd>{% include "_frequency.html" with s=schedule %} · {% if schedule.scope == "unit" %}{% t "Individual equipment schedule" %}{% else %}{% t "General contract schedule" %}{% endif %}</dd></div>{% endif %}
+      </dl>
+      {% else %}<div class="empty">{% t "This unit is not covered by an active contract." %}</div>{% endif %}
+    </div>
+    <div class="card"><h2>{% t "Next Maintenance Visit" %}</h2>
+      {% if next_visit %}
+      <p style="margin:0"><a href="{{ next_visit.get_absolute_url }}">{{ next_visit.scheduled_date|longdate }}</a> {% badge next_visit.display_status next_visit.status_label %}</p>
+      <p class="meta" style="margin:4px 0 0;color:var(--ink-3)">{{ next_visit.number }} · {% t next_visit.source_label %}</p>
+      {% else %}<div class="empty">{% t "No visit is scheduled." %}</div>{% endif %}
+    </div>
+  </div>
+  <div class="card flush"><h2>{% t "Scheduled Visits" %}</h2>
+    {% include "_visits_table.html" with visits=upcoming_visits %}
+  </div>
+  <div class="card flush"><h2>{% t "Maintenance History" %}</h2>
+    {% include "_visits_table.html" with visits=history %}
+  </div>
+  {% if contract_history %}
+  <div class="card"><h2>{% t "Contract History" %}</h2>
+    <ul class="mini-list">{% for l in contract_history %}<li><a href="{{ l.contract.get_absolute_url }}">{{ l.contract.number }}</a><span class="meta">{{ l.added_at|longdate }}{% if l.removed_at %} → {{ l.removed_at|longdate }}{% endif %}</span></li>{% endfor %}</ul>
+  </div>
+  {% endif %}
+</section>
+
+<section id="images" class="tab-panel card">
+  <div class="gallery">
+    {% for p in photos %}<figure><a href="{% url 'attachment_file' p.pk %}" target="_blank" rel="noopener"><img src="{% url 'attachment_file' p.pk %}" alt="{{ p.get_kind_display|tr }}" loading="lazy"></a><figcaption>{{ p.get_kind_display|tr }}</figcaption></figure>
+    {% empty %}<div class="empty">{% t "No images uploaded yet." %}</div>{% endfor %}
+  </div>
+  {% if request.user|can:"equipment.edit" %}
+  <h3>{% t "Upload Image" %}</h3>
+  <form method="post" enctype="multipart/form-data" action="{% url 'unit_photo' unit.pk %}" class="form-grid">{% csrf_token %}
+    {% include "_fields.html" with form=photo_form %}
+    <div class="form-actions wide"><button class="btn primary">{% t "Upload" %}</button></div>
+  </form>
+  {% endif %}
+</section>
+
+<section id="qr" class="tab-panel card">
+  <img class="qr" src="{% url 'unit_qr' unit.pk %}" alt="{% t 'QR Code' %}">
+  <p>{{ unit.name }} · {{ unit.serial_number|default:"—" }}</p>
+  <p style="color:var(--ink-3)">{% t "Scanning opens this profile after sign-in, subject to the user's permissions." %}</p>
+  <a class="btn" href="{% url 'unit_qr' unit.pk %}" download="QR-{{ unit.pk }}.svg">{% icon "download" 16 %} {% t "Download" %}</a>
+</section>
+{% endblock %}
