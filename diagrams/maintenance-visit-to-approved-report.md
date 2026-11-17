@@ -31,3 +31,9 @@ The subject is a process with decisions (one visit or a contract, unit known or 
 
 - `maintenance-visit-to-approved-report.puml`: the diagram source (PlantUML)
 - `maintenance-visit-to-approved-report.png` and `.svg`: rendered with Kroki
+
+## Arabic version
+
+![زيارة الصيانة: من المكتب إلى التقرير المعتمد](./maintenance-visit-to-approved-report-ar.png)
+
+Same flow in Arabic: `maintenance-visit-to-approved-report-ar.puml`, `.png` and `.svg`. Each bold phrase sits on its own line, because a bold word in the middle of an Arabic line is drawn on the wrong side.
