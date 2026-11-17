@@ -530,10 +530,12 @@ def technicians():
 def dispatch_visits(visits, technician, actor, contract=None):
     """Start the visits and hand them to the technician. They reach his phone on its next sync; he gets one notification
     (one for the whole contract, not one per unit). Logged on each visit."""
+    today = timezone.localdate()
     for v in visits:
-        v.technician, v.status = technician, "in_progress"
-        v.save(update_fields=["technician", "status"])
-        record(actor, "visit_started", v, f"Sent to {technician}")
+        late = v.scheduled_date < today  # a missed visit sent now is being worked on today, not overdue; planned_date keeps the original date
+        v.technician, v.status, v.scheduled_date = technician, "in_progress", max(v.scheduled_date, today)
+        v.save(update_fields=["technician", "status", "scheduled_date"])
+        record(actor, "visit_started", v, f"Sent to {technician}" + (f", date moved to {today}" if late else ""))
     if not visits:
         return
     if contract:

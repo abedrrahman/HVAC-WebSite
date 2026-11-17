@@ -692,6 +692,7 @@ class PhoneApp(Base):
         c = self.contract()
         set_contract_units(c, [self.c1, self.c2], self.admin)
         planned = Visit.objects.create(unit=self.c1, client=self.client_a, contract=c, scheduled_date=self.today + timedelta(days=10))
+        missed = Visit.objects.create(unit=self.c2, client=self.client_a, contract=c, scheduled_date=self.today - timedelta(days=7))
         self.client.force_login(self.engineer)
         send = reverse("contract_dispatch", args=[c.pk])
         self.assertEqual(self.client.get(send).status_code, 200)
@@ -700,6 +701,9 @@ class PhoneApp(Base):
         sent = Visit.objects.filter(contract=c).order_by("unit__name_en")
         self.assertEqual([(v.unit, v.status, v.technician) for v in sent], [(self.c1, "in_progress", self.tech), (self.c2, "in_progress", self.tech)])
         self.assertIn(planned, sent)  # the unit's next planned visit is used, not a new one
+        missed.refresh_from_db()  # a missed visit sent now is in progress today, not overdue
+        self.assertEqual((missed.status, missed.scheduled_date, missed.display_status), ("in_progress", self.today, "in_progress"))
+        self.assertEqual(Visit.objects.get(pk=planned.pk).scheduled_date, self.today + timedelta(days=10))  # a future date is kept
         self.assertEqual(Notification.objects.filter(user=self.tech, contract=c).count(), 1)  # one for the contract, not one per unit
 
         data = self.client.get(reverse("api_sync"), **self.token("tech")).json()
