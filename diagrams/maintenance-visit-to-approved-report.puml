@@ -1,0 +1,91 @@
+@startuml
+title Maintenance visit: from the office to the approved report
+
+skinparam backgroundColor white
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam defaultFontSize 13
+skinparam ArrowColor #555555
+skinparam ArrowFontSize 12
+skinparam ActivityBackgroundColor #FFFFFF
+skinparam ActivityBorderColor #8A8F99
+skinparam ActivityDiamondBackgroundColor #FFF6E0
+skinparam SwimlaneTitleFontStyle bold
+skinparam NoteBackgroundColor #F4F6FA
+skinparam NoteBorderColor #C6C8D2
+skinparam PartitionFontStyle bold
+
+start
+partition "Office (web page)" #FDECF1 {
+  if (One unit or a whole contract?) then (one visit)
+    :Press **Start Visit**
+    and choose the technician;
+  else (contract)
+    :Press **Send all units to a technician**
+    choose technician, date and visit type;
+    note right
+      Each unit's next planned visit
+      (within a month) is reused,
+      so nothing is duplicated
+    end note
+  endif
+  :Visits become **In Progress**
+  technician gets a notification; <<#E8F0FA>>
+}
+partition "Phone app (technician)" #E8F0FA {
+  :Next sync (within a minute when online)
+  shows the visits under **My visits**;
+  :Technician fills one report per unit
+  (readings, photos, notes, parts);
+  if (Contract with several units?) then (yes)
+    :**Sign all**: technician and client
+    sign once for every unit;
+  else (no)
+    :Technician and client sign the report;
+  endif
+  :Upload when online:
+  report + PDF + photos + signatures;
+  note right
+    Safe to send twice:
+    the same report id never
+    makes a second visit
+  end note
+}
+partition "Web page" #F4F6FA {
+  if (Unit known to the web page?) then (yes)
+    :The started visit is **completed**
+    with this report;
+  else (no)
+    :Report waits under **Daily reports**
+    until someone adds the site and unit;
+  endif
+  :Status: **Waiting for the foreman**
+  foremen get a notification;
+}
+partition "Foreman" #FFF6E0 {
+  :Reads the report, corrects readings;
+  note right
+    Readings outside the limits
+    show in red. Every change is
+    logged with old and new value
+  end note
+  :**Approve and send to engineer**;
+}
+partition "Engineer" #DFF3E8 {
+  :Gets a notification, reads,
+  can correct readings;
+  :**Approve**;
+  :Status: **Approved** and locked
+  (only an administrator can change it); <<#DFF3E8>>
+  :**Approved report PDF**
+  (with the phone's signed pages);
+  :**Send by email**: PDF downloads and
+  a draft opens in Outlook;
+  note right
+    The PDF is dragged into the
+    email by hand: email links
+    cannot carry attachments
+  end note
+}
+stop
+@enduml
