@@ -24,6 +24,7 @@ from .documents import _serve, alarm_ask
 from .general import LOCK_SECONDS, MAX_LOGIN_FAILURES, client_ip
 
 MAX_PHOTOS = 30
+PENDING = ["scheduled", "rescheduled", "in_progress"]  # visits the phone can still report on
 
 
 def _hash(token):
@@ -101,7 +102,9 @@ def api_sync(request):
         return sorted(set(found))
 
     today = timezone.localdate()
-    open_visits = visits_for(user).open().filter(unit__in=units).order_by("scheduled_date") if user.has("visits.view") else Visit.objects.none()
+    # In-progress visits are the ones sent from the web page with Start Visit: the phone must get them too.
+    open_visits = (visits_for(user).filter(status__in=PENDING, unit__in=units).select_related("contract", "unit").order_by("scheduled_date")
+                   if user.has("visits.view") else Visit.objects.none())
     client_ids = {u.client_id for u in units}
     return JsonResponse({
         "synced_at": timezone.now().isoformat(),
@@ -112,7 +115,9 @@ def api_sync(request):
                    "qr_token": u.qr_token, "url": base + u.get_absolute_url(), "document_ids": unit_docs(u)} for u in units],
         "documents": [{"id": d.pk, "name_en": d.name_en, "name_ar": d.name_ar, "type": d.doc_type.name_en, "language": d.language,
                        "url": base + reverse("document_file", args=[d.pk]), "file_name": d.original_name, "size": d.size} for d in docs.values()],
-        "visits": [{"id": v.pk, "number": v.number, "unit_id": v.unit_id, "scheduled_date": v.scheduled_date.isoformat(), "type": v.visit_type, "overdue": v.scheduled_date < today}
+        "visits": [{"id": v.pk, "number": v.number, "unit_id": v.unit_id, "client_id": v.client_id, "scheduled_date": v.scheduled_date.isoformat(), "type": v.visit_type,
+                    "overdue": v.scheduled_date < today, "status": v.status, "assigned_to_me": v.technician_id == user.pk,
+                    "contract": {"id": v.contract_id, "number": v.contract.number, "title": v.contract.title} if v.contract_id else None}
                    for v in open_visits],
     })
 
@@ -183,10 +188,11 @@ def api_report(request):
         unit = matches[0] if len(matches) == 1 else None
 
     pdf, photos = request.FILES.get("pdf"), request.FILES.getlist("photo")[:MAX_PHOTOS]
+    signatures = request.FILES.getlist("signature")[:4]  # the technician's and the client's, as pictures (see APP_SYNC.md)
     try:
         if pdf:
             validate_upload(pdf, {"pdf"})
-        for p in photos:
+        for p in photos + signatures:
             validate_upload(p, IMAGE_EXTENSIONS)
     except ValidationError as e:
         return _error(e.messages[0], 400)
@@ -204,7 +210,7 @@ def api_report(request):
         if unit:
             open_visit = None
             if str(data.get("visit_id", "")).isdigit():
-                open_visit = visits_for(user).open().select_for_update().filter(pk=data["visit_id"], unit=unit).first()
+                open_visit = visits_for(user).filter(status__in=PENDING).select_for_update().filter(pk=data["visit_id"], unit=unit).first()
             owner = visit_from_report(unit, data, user, when, report_id, open_visit)
             report = FieldReport.objects.create(visit=owner, **kept)
             answer = {"visit_id": owner.pk, "number": owner.number, "url": _base(request) + owner.get_absolute_url(), "pending": False}
@@ -218,6 +224,8 @@ def api_report(request):
             new_attachment(pdf, user, Attachment.Kind.REPORT, **files)
         for p in photos:
             new_attachment(p, user, Attachment.Kind.PHOTO, **files)
+        for p in signatures:
+            new_attachment(p, user, Attachment.Kind.SIGNATURE, **files)
         record(user, "app_report_uploaded", owner, f"{text('technician', 100)} · {len(photos)} photos")
         what = " · ".join(x for x in (str(unit) if unit else text("client", 200) or text("site", 200), text("machine_model", 120)) if x) or report_id
         notify_report(report, "reports.review", "received", f"New maintenance report waiting for the foreman: {what}",

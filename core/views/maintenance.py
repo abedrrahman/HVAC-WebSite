@@ -21,7 +21,7 @@ from ..i18n import t
 from ..phone_report import report_view
 from ..report_pdf import build_report_pdf
 from ..models import (ActivityLog, Attachment, Category, Client, Contract, Country, FieldReport, Schedule, SystemSettings, Unit, User, Visit, VisitReport, add_months)
-from ..services import (can_edit_report, close_open_contract_visits, contracts_for, copy_for_renewal, field_reports_for, follow_schedule_people, limits_for, new_attachment,
+from ..services import (can_edit_report, close_open_contract_visits, dispatch_visits, technicians, contracts_for, copy_for_renewal, field_reports_for, follow_schedule_people, limits_for, new_attachment,
                         notify_report, record, report_texts, set_contract_units,
                         sync_contract_visits, unit_conflicts, visit_from_report, visits_for)
 from .common import action, badge, fmt, form_page, link, list_page, post_only, requires, saved
@@ -94,6 +94,28 @@ def contract_detail(request, pk):
         "attachment_form": f.AttachmentForm(kinds=[Attachment.Kind.CONTRACT]), "attachments": c.attachments.all(), "duration": c.duration_months,
         "renewals": c.renewals.all(),
     })
+
+
+@requires("visits.manage")
+def contract_dispatch(request, pk):
+    """One button for a whole contract: every unit under it gets a visit, all started and sent to one technician's phone.
+    A unit's next planned visit (within a month) is used when there is one, so no duplicate is made."""
+    c = _contract_or_404(request, pk)
+    units = list(c.active_units.filter(is_active=True).order_by("name_en"))
+    form = ContractDispatchForm(request.POST or None, initial={"scheduled_date": timezone.localdate(), "visit_type": Visit.Type.PREVENTIVE})
+    if request.method == "POST" and form.is_valid():
+        when, kind = form.cleaned_data["scheduled_date"], form.cleaned_data["visit_type"]
+        visits = []
+        with transaction.atomic():
+            for unit in units:
+                v = (Visit.objects.filter(status__in=["scheduled", "rescheduled", "in_progress"]).select_for_update().filter(contract=c, unit=unit, scheduled_date__lte=when + timedelta(days=31)).order_by("scheduled_date").first()
+                     or Visit.objects.create(unit=unit, client=c.client, contract=c, scheduled_date=when, visit_type=kind))
+                visits.append(v)
+            dispatch_visits(visits, form.cleaned_data["technician"], request.user, contract=c)
+        messages.success(request, t("Visits sent to the technician's phone:") + f" {len(visits)}")
+        return redirect(c)
+    return form_page(request, form, "Send all units to a technician", c.get_absolute_url(), submit="Start and send", subject=f"{c.number} · {c.client}",
+                     intro=t("A started visit is made for every unit under this contract and sent to the technician's phone.") + f" ({len(units)})")
 
 
 @requires("contracts.edit")
@@ -312,6 +334,19 @@ def visit_edit(request, pk=None):
     return form_page(request, form, "Edit Visit" if pk else "Add Visit", obj.get_absolute_url() if obj else reverse("visit_list"))
 
 
+class DispatchForm(f.BaseForm):
+    technician = forms.ModelChoiceField(label="Assigned Technician", queryset=User.objects.none())
+
+    def __init__(self, *a, **k):
+        super().__init__(*a, **k)
+        self.fields["technician"].queryset = User.objects.filter(pk__in=[u.pk for u in technicians()]).order_by("first_name", "username")
+
+
+class ContractDispatchForm(DispatchForm):
+    scheduled_date = forms.DateField(label="Visit date")
+    visit_type = forms.ChoiceField(label="Visit Type", choices=Visit.Type.choices)
+
+
 def _visit_or_404(request, pk):
     return get_object_or_404(visits_for(request.user).select_related("unit__category", "unit__model__manufacturer", "client", "contract", "engineer", "technician", "schedule"), pk=pk)
 
@@ -381,16 +416,19 @@ def visit_cancel(request, pk):
     return redirect(v)
 
 
-@post_only
 @requires("visits.update")
 def visit_start(request, pk):
+    """Start Visit: choose the technician who receives it on his phone, then start it."""
     v = _visit_or_404(request, pk)
-    if v.status in ("scheduled", "rescheduled"):
-        v.status = "in_progress"
-        v.save(update_fields=["status"])
-        record(request.user, "visit_started", v)
-        messages.success(request, t("Saved successfully."))
-    return redirect(v)
+    if v.status not in ("scheduled", "rescheduled"):
+        return redirect(v)
+    form = DispatchForm(request.POST or None, initial={"technician": v.technician_id})
+    if request.method == "POST" and form.is_valid():
+        dispatch_visits([v], form.cleaned_data["technician"], request.user)
+        messages.success(request, t("The visit was started and sent to the technician's phone."))
+        return redirect(v)
+    return form_page(request, form, "Start Visit", v.get_absolute_url(), submit="Start and send", subject=f"{v.number} · {v.unit}",
+                     intro=t("The technician gets the visit on his phone the next time the app syncs (within a minute when online)."))
 
 
 @post_only
@@ -495,6 +533,7 @@ def maintenance_report_view(request, pk):
     return render(request, "field_report.html", {
         "fr": fr, "view": report_view(fr.data, limits_for(unit=fr.visit.unit if fr.visit else None)),
         "photos": [a for a in files if a.kind == Attachment.Kind.PHOTO], "pdf": next((a for a in files if a.kind == Attachment.Kind.REPORT), None),
+        "signatures": [a for a in files if a.kind == Attachment.Kind.SIGNATURE],
         "can_add": not fr.visit_id and request.user.has("equipment.edit") and request.user.has("clients.edit"),
         "can_edit": can_edit_report(request.user, fr), "step": _next_step(request.user, fr),
         "can_email": fr.status == FieldReport.Status.APPROVED and (request.user.has("reports.approve") or request.user.has("users.manage")),
@@ -630,7 +669,8 @@ def maintenance_report_pdf(request, pk):
         raise PermissionDenied
     files = list((fr.visit or fr).attachments.all())
     content = build_report_pdf(fr, report_view(fr.data, limits_for(unit=fr.visit.unit if fr.visit else None)),
-                               [a for a in files if a.kind == Attachment.Kind.PHOTO], next((a for a in files if a.kind == Attachment.Kind.REPORT), None))
+                               [a for a in files if a.kind == Attachment.Kind.PHOTO], next((a for a in files if a.kind == Attachment.Kind.REPORT), None),
+                               [a for a in files if a.kind == Attachment.Kind.SIGNATURE])
     if request.GET.get("email"):
         record(request.user, "report_email_prepared", fr, _report_subject(fr))
     response = HttpResponse(content, content_type="application/pdf")

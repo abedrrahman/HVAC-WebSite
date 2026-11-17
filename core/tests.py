@@ -659,6 +659,38 @@ class PhoneApp(Base):
         self.client.force_login(self.admin)  # only an administrator can still change it
         self.assertEqual(self.client.get(url).status_code, 200)
 
+    def test_a_contract_is_sent_to_one_technicians_phone_and_his_reports_close_the_visits(self):
+        c = self.contract()
+        set_contract_units(c, [self.c1, self.c2], self.admin)
+        planned = Visit.objects.create(unit=self.c1, client=self.client_a, contract=c, scheduled_date=self.today + timedelta(days=10))
+        self.client.force_login(self.engineer)
+        send = reverse("contract_dispatch", args=[c.pk])
+        self.assertEqual(self.client.get(send).status_code, 200)
+        self.client.post(send, {"technician": self.tech.pk, "scheduled_date": self.today.isoformat(), "visit_type": "preventive"})
+        self.client.post(send, {"technician": self.tech.pk, "scheduled_date": self.today.isoformat(), "visit_type": "preventive"})  # pressed twice: no duplicates
+        sent = Visit.objects.filter(contract=c).order_by("unit__name_en")
+        self.assertEqual([(v.unit, v.status, v.technician) for v in sent], [(self.c1, "in_progress", self.tech), (self.c2, "in_progress", self.tech)])
+        self.assertIn(planned, sent)  # the unit's next planned visit is used, not a new one
+        self.assertEqual(Notification.objects.filter(user=self.tech, contract=c).count(), 1)  # one for the contract, not one per unit
+
+        data = self.client.get(reverse("api_sync"), **self.token("tech")).json()
+        mine = {v["unit_id"]: v for v in data["visits"]}
+        self.assertEqual((set(mine), mine[self.c1.pk]["contract"]["number"], mine[self.c1.pk]["assigned_to_me"], mine[self.c1.pk]["status"]),
+                         ({self.c1.pk, self.c2.pk}, "MC-1", True, "in_progress"))
+        png = b"\x89PNG\r\n\x1a\n" + b"\x00" * 64
+        report = {"id": "r-9", "unit_id": self.c1.pk, "visit_id": planned.pk, "contract_batch_id": "b-1"}
+        self.client.post(reverse("api_report"), {"report": json.dumps(report), "signature": [SimpleUploadedFile("signature_client.png", png, "image/png"),
+                                                                                                  SimpleUploadedFile("signature_technician.png", png, "image/png")]}, **self.token("tech"))
+        planned.refresh_from_db()
+        self.assertEqual((planned.status, planned.attachments.filter(kind="signature").count()), ("completed", 2))  # the started visit is the one closed
+
+        visit = Visit.objects.filter(unit=self.c2).first()
+        self.client.force_login(self.engineer)
+        self.client.post(reverse("visit_start", args=[Visit.objects.create(unit=self.a1, client=self.client_a, scheduled_date=self.today).pk]), {"technician": self.tech.pk})
+        self.assertEqual(Visit.objects.get(unit=self.a1).status, "in_progress")
+        self.assertTrue(Notification.objects.filter(user=self.tech, visit__unit=self.a1).exists())
+        self.assertEqual(visit.status, "in_progress")
+
     def test_password_reset_signs_the_phone_out_and_a_serial_alone_does_not_pick_a_unit(self):
         auth = self.token("eng")
         self.client.force_login(self.admin)
@@ -1267,7 +1299,7 @@ class Pages(Base):
         self.client.force_login(self.tech)
         self.assertEqual(self.client.post(reverse("visit_start", args=[v.pk])).status_code, 404)  # not assigned
         Visit.objects.filter(pk=v.pk).update(technician=self.tech)
-        self.client.post(reverse("visit_start", args=[v.pk]))
+        self.client.post(reverse("visit_start", args=[v.pk]), {"technician": self.tech.pk})
         v.refresh_from_db()
         self.assertEqual(v.status, "in_progress")
         self.assertEqual(self.client.post(reverse("visit_cancel", args=[v.pk]), {"reason": "x"}).status_code, 403)

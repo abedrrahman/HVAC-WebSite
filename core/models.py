@@ -754,6 +754,7 @@ class Attachment(models.Model):
         LOGO = "logo", "Logo"
         CONTRACT = "contract", "Contract document"
         REPORT = "report", "Maintenance report"
+        SIGNATURE = "signature", "Signature"
 
     kind = models.CharField("Type", max_length=20, choices=Kind.choices, default=Kind.OTHER)
     file = models.FileField("File", upload_to=upload_path)

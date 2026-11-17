@@ -30,7 +30,13 @@ def both(en):
     return f"{en} · {AR[en]}" if AR.get(en) else en
 
 
-def build_report_pdf(fr, view, photos, phone_pdf):
+def signer(att):
+    """The signature's caption from its file name, which the app sets to signature_technician or signature_client."""
+    name = att.original_name.lower()
+    return both("Technician") if "tech" in name else both("Client") if "client" in name else both("Signature")
+
+
+def build_report_pdf(fr, view, photos, phone_pdf, signatures=()):
     font = _pdf_font()
     base = ParagraphStyle("base", fontName=font, fontSize=8.5, leading=11)
     small = ParagraphStyle("small", parent=base, fontSize=7.5, leading=9.5, textColor=MUTED)
@@ -116,12 +122,29 @@ def build_report_pdf(fr, view, photos, phone_pdf):
         grid.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "TOP"), ("BOTTOMPADDING", (0, 0), (-1, -1), 8)]))
         story += [para(both("Photos"), section), grid]
 
+    signed = []
+    for s in signatures:
+        try:
+            w, h = ImageReader(s.file.path).getSize()
+            scale = min((WIDTH / 2 - 20) / w, 70 / h)
+            signed.append((Image(s.file.path, width=w * scale, height=h * scale), para(signer(s), small)))
+        except Exception:  # a damaged signature picture must not stop the report
+            log.warning("Signature %s left out of report %s", s.pk, fr.pk)
+    if signed:
+        rows = []  # two signatures per line: the pictures, then their captions
+        for i in range(0, len(signed), 2):
+            pair = signed[i:i + 2] + [("", "")] * (2 - len(signed[i:i + 2]))
+            rows += [[p[0] for p in pair], [p[1] for p in pair]]
+        grid = Table(rows, colWidths=[WIDTH / 2] * 2)
+        grid.setStyle(TableStyle([("VALIGN", (0, 0), (-1, -1), "BOTTOM")]))
+        story += [para(both("Signatures"), section), grid]
+
     story += [para(both("Approvals"), section), table([
         [para(both("Foreman")), para(str(fr.foreman_by or "—")), para(when(fr.foreman_at))],
         [para(both("Engineer")), para(str(fr.engineer_by or "—")), para(when(fr.engineer_at))],
     ], [WIDTH * 0.3, WIDTH * 0.4, WIDTH * 0.3])]
     if phone_pdf:
-        story += [Spacer(1, 6), para("The technician's original report with the signatures follows on the next pages.", small)]
+        story += [Spacer(1, 6), para("The technician's original report from the phone follows on the next pages.", small)]
 
     def footer(canvas, doc):
         canvas.saveState()

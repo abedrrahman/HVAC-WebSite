@@ -86,6 +86,7 @@ urlpatterns = [
     path("contracts/<int:pk>/", m.contract_detail, name="contract_detail"),
     path("contracts/<int:pk>/edit/", m.contract_edit, name="contract_edit"),
     path("contracts/<int:pk>/equipment/", m.contract_equipment, name="contract_equipment"),
+    path("contracts/<int:pk>/dispatch/", m.contract_dispatch, name="contract_dispatch"),
     path("contracts/<int:pk>/renew/", m.contract_renew, name="contract_renew"),
     path("contracts/<int:pk>/attach/", m.contract_attach, name="contract_attach"),
     path("contracts/<int:pk>/do/<str:verb>/", m.contract_action, name="contract_action"),

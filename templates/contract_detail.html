@@ -6,6 +6,7 @@
   {% if request.user|can:"contracts.edit" %}
   <div class="actions">
     {% if c.status == "draft" or c.status == "suspended" %}<form method="post" action="{% url 'contract_action' c.pk 'activate' %}">{% csrf_token %}<button class="btn primary">{% t "Activate" %}</button></form>{% endif %}
+    {% if c.in_force and request.user|can:"visits.manage" %}<a class="btn primary" href="{% url 'contract_dispatch' c.pk %}">{% t "Send all units to a technician" %}</a>{% endif %}
     <a class="btn" href="{% url 'contract_edit' c.pk %}">{% icon "edit" 16 %} {% t "Edit" %}</a>
     <a class="btn" href="{% url 'contract_renew' c.pk %}">{% t "Renew" %}</a>
     {% if c.status == "active" %}<form method="post" action="{% url 'contract_action' c.pk 'suspend' %}" data-confirm="{% t 'Suspend this contract? Future visits will be cleared or cancelled.' %}">{% csrf_token %}<button class="btn">{% t "Suspend" %}</button></form>{% endif %}

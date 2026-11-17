@@ -91,6 +91,12 @@
 </div>
 {% endif %}
 
+{% if signatures %}
+<div class="section-title">{% t "Signatures" %}</div>
+<div class="gallery">
+  {% for s in signatures %}<figure><img src="{% url 'attachment_file' s.pk %}" alt="{% t "Signature" %}" loading="lazy" style="object-fit:contain;background:#fff"><figcaption>{{ s.original_name }}</figcaption></figure>{% endfor %}
+</div>
+{% endif %}
 <div class="section-title">{% t "Photos" %} ({{ photos|length }})</div>
 {% if photos %}
 <div class="gallery large">

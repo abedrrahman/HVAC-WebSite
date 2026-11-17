@@ -522,6 +522,32 @@ def limits_for(unit=None, model=None):
     return resolved_limits(layers)
 
 
+def technicians():
+    """People who can receive visits on their phone: active users allowed to update visits."""
+    return [u for u in User.objects.filter(is_active=True).select_related("role").order_by("first_name", "username") if u.has("visits.update")]
+
+
+def dispatch_visits(visits, technician, actor, contract=None):
+    """Start the visits and hand them to the technician. They reach his phone on its next sync; he gets one notification
+    (one for the whole contract, not one per unit). Logged on each visit."""
+    for v in visits:
+        v.technician, v.status = technician, "in_progress"
+        v.save(update_fields=["technician", "status"])
+        record(actor, "visit_started", v, f"Sent to {technician}")
+    if not visits:
+        return
+    if contract:
+        en = f"Contract {contract.number} ({contract.client}): {len(visits)} unit(s) sent to your phone"
+        ar = f"العقد {contract.number} ({contract.client}): تم إرسال {len(visits)} وحدة إلى هاتفك"
+        key, target = f"dispatch:contract:{contract.pk}:{timezone.now():%Y%m%d%H%M%S}", {"contract": contract}
+    else:
+        v = visits[0]
+        en, ar = f"Visit {v.number} sent to your phone: {v.unit} · {v.client}", f"تم إرسال الزيارة {v.number} إلى هاتفك: {v.unit} · {v.client}"
+        key, target = f"dispatch:visit:{v.pk}:{technician.pk}", {"visit": v}
+    Notification.objects.bulk_create([Notification(user=technician, kind=Notification.Kind.VISIT, dedupe_key=key[:80], message_en=en, message_ar=ar, **target)],
+                                     ignore_conflicts=True)
+
+
 def report_texts(data):
     """The four text boxes of a visit report, written from a phone report's readings, work, materials and notes."""
     text = lambda key, limit=5000: str(data.get(key, "") or "")[:limit]

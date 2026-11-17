@@ -4,7 +4,7 @@
 <div class="page-head">
   <div><h1>{{ v.number }} {% badge v.display_status v.status_label %}</h1><div class="sub">{{ v.client.name }} · <a href="{{ v.unit.get_absolute_url }}">{{ v.unit.name }}</a></div></div>
   <div class="actions">
-    {% if v.is_open and request.user|can:"visits.update" and v.status != "in_progress" %}<form method="post" action="{% url 'visit_start' v.pk %}">{% csrf_token %}<button class="btn primary">{% t "Start Visit" %}</button></form>{% endif %}
+    {% if v.is_open and request.user|can:"visits.update" and v.status != "in_progress" %}<a class="btn primary" href="{% url 'visit_start' v.pk %}">{% t "Start Visit" %}</a>{% endif %}
     {% if v.status != "completed" and request.user|can:"visits.manage" %}<a class="btn" href="{% url 'visit_edit' v.pk %}">{% icon "edit" 16 %} {% t "Edit" %}</a>{% endif %}
     {% if request.user|can:"visits.attach" %}<a class="btn" href="{% url 'visit_report' v.pk %}">{% t "Maintenance Report" %}</a>{% endif %}
   </div>

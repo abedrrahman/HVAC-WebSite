@@ -18,7 +18,10 @@ Answer (JSON): `synced_at`, `clients`, `units`, `documents`, `visits`.
 
 - `units[]`: `id, name_en, name_ar, client_id, category, subtype, manufacturer, model, serial_number, project, location, qr_token, url, document_ids`
 - `documents[]`: `id, name_en, name_ar, type, language, url` — the url opens the file on the website (needs website sign-in).
-- `visits[]`: the user's open visits: `id, number, unit_id, scheduled_date, type, overdue`
+- `visits[]`: the user's open visits: `id, number, unit_id, client_id, scheduled_date, type, overdue, status, assigned_to_me, contract`
+  - `status` is `scheduled`, `rescheduled` or `in_progress`. `in_progress` means the office pressed Start Visit (or sent a whole contract) and chose a technician.
+  - `assigned_to_me` is true when this user is that technician: these are the visits for the phone's "My visits" dashboard.
+  - `contract` is `{id, number, title}` or null. Visits with the same contract id belong together and can be signed once for all units.
 - A user without "See all records" gets only the units of visits assigned to them.
 - The whole list is sent every time; replace the phone's copy with it.
 
@@ -42,6 +45,8 @@ Multipart form:
   `required_maintenance`, `checklist_items[] {label_en, value}`, `attention_notes[] {unit_no, note}`, `materials[] {description, qty, unit}`
 - `pdf`: the exported PDF (optional but expected)
 - `photo`: site photos, repeatable, up to 30
+- `signature`: the signatures as PNG or JPEG pictures, repeatable, up to 4. Name the files `signature_technician.png` and `signature_client.png`; the website prints them on the approved report.
+- For a contract signed once for all its units: send each unit's report separately with the same signature files, and put the same `contract_batch_id` (any text the phone makes up) in each report's JSON.
 
 Answer: `{"visit_id", "number", "url", "already_uploaded"}` — 201 the first time, 200 when the same `id` is sent again.
 
