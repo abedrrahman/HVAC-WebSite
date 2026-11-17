@@ -23,10 +23,10 @@
 [data-theme="dark"] .brand-full { background: #fff; border-radius: 10px; padding: 6px; box-sizing: content-box; width: 156px; }
 [data-theme="dark"] .stat.bad .top .icon { color: #1b1c22; }
 [data-theme="dark"] .snippet mark { background: #6b5510; }
-[data-theme="dark"] .s-due, [data-theme="dark"] .s-expiring, [data-theme="dark"] .s-suspended, [data-theme="dark"] .s-maintenance { color: var(--warn); }
+[data-theme="dark"] .s-due, [data-theme="dark"] .s-received, [data-theme="dark"] .s-expiring, [data-theme="dark"] .s-suspended, [data-theme="dark"] .s-maintenance { color: var(--warn); }
 [data-theme="dark"] .s-overdue, [data-theme="dark"] .s-expired, [data-theme="dark"] .s-out_of_service { color: var(--bad); }
-[data-theme="dark"] .s-completed, [data-theme="dark"] .s-active, [data-theme="dark"] .s-operational { color: var(--good); }
-[data-theme="dark"] .s-in_progress { background: #25244d; color: #b9b6f7; }
+[data-theme="dark"] .s-completed, [data-theme="dark"] .s-approved, [data-theme="dark"] .s-active, [data-theme="dark"] .s-operational { color: var(--good); }
+[data-theme="dark"] .s-in_progress, [data-theme="dark"] .s-engineer { background: #25244d; color: #b9b6f7; }
 [data-theme="dark"] .s-rescheduled { background: #33234a; color: #d3aef2; }
 [data-theme="dark"] .alert.success { background: var(--good-soft); border-color: #1f5a45; color: var(--good); }
 [data-theme="dark"] .alert.error { background: var(--bad-soft); border-color: #6b2c27; color: var(--bad); }
@@ -186,10 +186,10 @@ td a:not(.btn):not(.badge):hover, .mini-list a:hover { color: var(--brand-dark);
 .iconbtn .badge { padding: 0 7px; }
 .iconbtn .badge::before { display: none; }
 .s-upcoming, .s-scheduled { background: var(--info-soft); color: var(--info); }
-.s-due, .s-expiring, .s-suspended, .s-maintenance { background: var(--warn-soft); color: #7a4c00; }
+.s-due, .s-received, .s-expiring, .s-suspended, .s-maintenance { background: var(--warn-soft); color: #7a4c00; }
 .s-overdue, .s-expired, .s-out_of_service { background: var(--bad-soft); color: #a52a21; }
-.s-in_progress { background: #e6e6fa; color: #3e3a9e; }
-.s-completed, .s-active, .s-operational { background: var(--good-soft); color: #14693f; }
+.s-in_progress, .s-engineer { background: #e6e6fa; color: #3e3a9e; }
+.s-completed, .s-approved, .s-active, .s-operational { background: var(--good-soft); color: #14693f; }
 .s-rescheduled { background: #f1e6f9; color: #6a2f93; }
 .s-cancelled, .s-terminated, .s-decommissioned, .s-draft { background: var(--surface-3); color: var(--ink-2); }
 .alert { padding: 12px 16px; border-radius: var(--radius-sm); margin-bottom: 14px; border: 1px solid; }

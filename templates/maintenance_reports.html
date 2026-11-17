@@ -9,12 +9,12 @@
 
 <section id="contract" class="tab-panel card flush">
   <div class="table-wrap"><table>
-    <thead><tr><th>{% t "Visit Number" %}</th><th>{% t "Equipment Unit" %}</th><th>{% t "Client" %}</th><th>{% t "Contract Number" %}</th><th>{% t "Actual Visit Date" %}</th><th>{% t "Assigned Technician" %}</th><th>{% t "Report" %}</th></tr></thead>
+    <thead><tr><th>{% t "Visit Number" %}</th><th>{% t "Equipment Unit" %}</th><th>{% t "Client" %}</th><th>{% t "Contract Number" %}</th><th>{% t "Actual Visit Date" %}</th><th>{% t "Assigned Technician" %}</th><th>{% t "Status" %}</th><th>{% t "Report" %}</th></tr></thead>
     <tbody>{% for row in contract_rows %}<tr>
       <td><a href="{{ row.visit.get_absolute_url }}">{{ row.visit.number }}</a></td><td>{{ row.visit.unit.name }}</td><td>{{ row.visit.client.name }}</td>
       <td>{{ row.visit.contract.number }}</td><td>{{ row.visit.actual_date|longdate }}</td><td>{{ row.visit.technician|default:"—" }}</td>
-      <td>{% if row.hidden %}<span class="meta">{% t "Waiting for approval" %}</span>{% else %}{% if row.report %}<a href="{% url 'maintenance_report_view' row.report.pk %}">{% t "Open" %}</a> <span class="meta">{% t row.report.get_status_display %}</span>{% endif %} {% if row.file %}<a href="{% url 'attachment_file' row.file.pk %}">PDF</a>{% elif not row.report %}—{% endif %}{% endif %}</td>
-    </tr>{% empty %}<tr><td colspan="7"><div class="empty">{% t "No records found." %}</div></td></tr>{% endfor %}</tbody>
+      <td>{% if row.hidden %}{% badge "received" "Waiting for approval" %}{% elif row.report %}{% badge row.report.status row.report.get_status_display %}{% else %}—{% endif %}</td><td>{% if row.hidden %}—{% else %}{% if row.report %}<a href="{% url 'maintenance_report_view' row.report.pk %}">{% t "Open" %}</a>{% endif %} {% if row.file %}<a href="{% url 'attachment_file' row.file.pk %}">PDF</a>{% elif not row.report %}—{% endif %}{% endif %}</td>
+    </tr>{% empty %}<tr><td colspan="8"><div class="empty">{% t "No records found." %}</div></td></tr>{% endfor %}</tbody>
   </table></div>
 </section>
 
@@ -43,12 +43,12 @@
   {% endif %}
   <div class="section-title">{% t "Visits outside a contract" %} ({{ daily_total }})</div>
   <div class="card flush"><div class="table-wrap"><table>
-    <thead><tr><th>{% t "Visit Number" %}</th><th>{% t "Equipment Unit" %}</th><th>{% t "Client" %}</th><th>{% t "Visit Type" %}</th><th>{% t "Actual Visit Date" %}</th><th>{% t "Assigned Technician" %}</th><th>{% t "Report" %}</th></tr></thead>
+    <thead><tr><th>{% t "Visit Number" %}</th><th>{% t "Equipment Unit" %}</th><th>{% t "Client" %}</th><th>{% t "Visit Type" %}</th><th>{% t "Actual Visit Date" %}</th><th>{% t "Assigned Technician" %}</th><th>{% t "Status" %}</th><th>{% t "Report" %}</th></tr></thead>
     <tbody>{% for row in daily_rows %}<tr>
       <td><a href="{{ row.visit.get_absolute_url }}">{{ row.visit.number }}</a></td><td>{{ row.visit.unit.name }}</td><td>{{ row.visit.client.name }}</td>
       <td>{{ row.visit.get_visit_type_display|tr }}</td><td>{{ row.visit.actual_date|longdate }}</td><td>{{ row.visit.technician|default:"—" }}</td>
-      <td>{% if row.hidden %}<span class="meta">{% t "Waiting for approval" %}</span>{% else %}{% if row.report %}<a href="{% url 'maintenance_report_view' row.report.pk %}">{% t "Open" %}</a> <span class="meta">{% t row.report.get_status_display %}</span>{% endif %} {% if row.file %}<a href="{% url 'attachment_file' row.file.pk %}">PDF</a>{% elif not row.report %}—{% endif %}{% endif %}</td>
-    </tr>{% empty %}<tr><td colspan="7"><div class="empty">{% t "No records found." %}</div></td></tr>{% endfor %}</tbody>
+      <td>{% if row.hidden %}{% badge "received" "Waiting for approval" %}{% elif row.report %}{% badge row.report.status row.report.get_status_display %}{% else %}—{% endif %}</td><td>{% if row.hidden %}—{% else %}{% if row.report %}<a href="{% url 'maintenance_report_view' row.report.pk %}">{% t "Open" %}</a>{% endif %} {% if row.file %}<a href="{% url 'attachment_file' row.file.pk %}">PDF</a>{% elif not row.report %}—{% endif %}{% endif %}</td>
+    </tr>{% empty %}<tr><td colspan="8"><div class="empty">{% t "No records found." %}</div></td></tr>{% endfor %}</tbody>
   </table></div></div>
 </section>
 {% endblock %}
