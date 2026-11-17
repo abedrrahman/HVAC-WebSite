@@ -61,7 +61,8 @@ def run_backup():
         dump.unlink(missing_ok=True)
         partial.unlink(missing_ok=True)
     prune(settings.BACKUP_ROOT)
-    SystemSettings.objects.filter(pk=SystemSettings.get().pk).update(last_backup_run=timezone.now(), last_backup_status=archive.name)
+    # update() names only these two columns, so the backup also works just before a database upgrade adds new ones.
+    SystemSettings.objects.filter(pk=1).update(last_backup_run=timezone.now(), last_backup_status=archive.name)
     return archive
 
 

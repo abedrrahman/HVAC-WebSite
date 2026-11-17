@@ -22,6 +22,7 @@ Answer (JSON): `synced_at`, `clients`, `units`, `documents`, `visits`.
   - `status` is `scheduled`, `rescheduled` or `in_progress`. `in_progress` means the office pressed Start Visit (or sent a whole contract) and chose a technician.
   - `assigned_to_me` is true when this user is that technician: these are the visits for the phone's "My visits" dashboard.
   - `contract` is `{id, number, title}` or null. Visits with the same contract id belong together and can be signed once for all units.
+  - Order: visits sent to this user (`in_progress` and `assigned_to_me`) first, then the rest oldest first. The first visit listed for a unit is the one a report on that unit should close.
 - A user without "See all records" gets only the units of visits assigned to them.
 - The whole list is sent every time; replace the phone's copy with it.
 

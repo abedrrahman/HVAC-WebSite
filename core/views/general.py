@@ -139,7 +139,7 @@ def dashboard(request):
     for m in months:
         m.update(pct=round(m["n"] / top * 100), now=m["date"].month == today.month and m["date"].year == today.year, peak=m["n"] == top and m["n"] > 0)
     status = [("overdue", "Overdue", maintenance_cards[5][1]), ("todo", "To Do", maintenance_cards[2][1]),
-              ("in_progress", "In Progress", visits.filter(status="in_progress").count()), ("completed", "Completed", maintenance_cards[6][1])]
+              ("in_progress", "In Progress", visits.with_status("in_progress").count()), ("completed", "Completed", maintenance_cards[6][1])]
     total = sum(n for _, _, n in status)
     return render(request, "dashboard.html", {
         "today": today, "maintenance_cards": maintenance_cards, "months": months, "has_visits": any(m["n"] for m in months),

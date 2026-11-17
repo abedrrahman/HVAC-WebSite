@@ -600,10 +600,13 @@ class VisitQuerySet(models.QuerySet):
     def with_status(self, status):
         today = timezone.localdate()
         soon = today + timedelta(days=7)
-        if status in ("in_progress", "completed", "cancelled"):
+        # A visit sent to a phone whose date has passed with no report is overdue too, or a forgotten one would vanish from the warnings.
+        if status == "in_progress":
+            return self.filter(status="in_progress", scheduled_date__gte=today)
+        if status in ("completed", "cancelled"):
             return self.filter(status=status)
         if status == "overdue":
-            return self.open().filter(scheduled_date__lt=today)
+            return self.filter(status__in=[*self.OPEN, "in_progress"], scheduled_date__lt=today)
         if status == "rescheduled":
             return self.filter(status="rescheduled", scheduled_date__gte=today)
         if status == "due":
@@ -671,11 +674,13 @@ class Visit(models.Model):
 
     @property
     def display_status(self):
-        if self.status in ("in_progress", "completed", "cancelled"):
+        if self.status in ("completed", "cancelled"):
             return self.status
         today = timezone.localdate()
         if self.scheduled_date < today:
             return "overdue"
+        if self.status == "in_progress":
+            return self.status
         if self.status == "rescheduled":
             return "rescheduled"
         if self.scheduled_date == today:

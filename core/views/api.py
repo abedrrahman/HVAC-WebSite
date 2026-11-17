@@ -10,7 +10,8 @@ from django.conf import settings
 from django.contrib.auth import authenticate
 from django.core.cache import cache
 from django.core.exceptions import ValidationError
-from django.db import transaction
+from django.db import IntegrityError, transaction
+from django.db.models import Case, When
 from django.http import JsonResponse
 from django.urls import reverse
 from django.utils import timezone, translation
@@ -103,7 +104,9 @@ def api_sync(request):
 
     today = timezone.localdate()
     # In-progress visits are the ones sent from the web page with Start Visit: the phone must get them too.
-    open_visits = (visits_for(user).filter(status__in=PENDING, unit__in=units).select_related("contract", "unit").order_by("scheduled_date")
+    # The app reports on the first visit listed for a unit, so the one sent to this technician comes before an older missed one.
+    sent_to_me = Case(When(status="in_progress", technician=user, then=0), default=1)
+    open_visits = (visits_for(user).filter(status__in=PENDING, unit__in=units).select_related("contract", "unit").order_by(sent_to_me, "scheduled_date")
                    if user.has("visits.view") else Visit.objects.none())
     client_ids = {u.client_id for u in units}
     return JsonResponse({
@@ -158,6 +161,16 @@ def api_alarms(request):
     return JsonResponse({"version": version, "alarms": alarms, "fields": [f.replace("controller__name_en", "controller") for f in fields]})
 
 
+def _already_uploaded(request, report_id):
+    """The answer for a report the website already holds, or None."""
+    done = Visit.objects.filter(app_report_id=report_id).first()
+    if done:
+        return JsonResponse({"visit_id": done.pk, "number": done.number, "url": _base(request) + done.get_absolute_url(), "already_uploaded": True, "pending": False})
+    if FieldReport.objects.filter(app_report_id=report_id).exists():
+        return JsonResponse({"visit_id": None, "number": "", "url": _base(request) + reverse("maintenance_reports") + "#daily", "already_uploaded": True, "pending": True})
+    return None
+
+
 @require_POST
 @api_user
 def api_report(request):
@@ -172,11 +185,9 @@ def api_report(request):
         assert report_id and isinstance(data, dict)
     except (ValueError, KeyError, TypeError, AssertionError):
         return _error("The report data is missing or unreadable.", 400)
-    done = Visit.objects.filter(app_report_id=report_id).first()
-    if done:
-        return JsonResponse({"visit_id": done.pk, "number": done.number, "url": _base(request) + done.get_absolute_url(), "already_uploaded": True, "pending": False})
-    if FieldReport.objects.filter(app_report_id=report_id).exists():
-        return JsonResponse({"visit_id": None, "number": "", "url": _base(request) + reverse("maintenance_reports") + "#daily", "already_uploaded": True, "pending": True})
+    already = _already_uploaded(request, report_id)
+    if already:
+        return already
 
     mine = units_for(user).filter(is_active=True)
     unit = mine.filter(pk=data["unit_id"]).first() if str(data.get("unit_id", "")).isdigit() else None
@@ -206,28 +217,36 @@ def api_report(request):
     kept = dict(app_report_id=report_id, data=data, client_name=text("client", 200), site=text("site", 200), machine_type=text("type", 30),
                 machine_model=text("machine_model", 120), serial_no=text("serial_no", 120), maintenance_type=text("maintenance_type", 30),
                 report_date=when, uploaded_by=user)
-    with transaction.atomic():
-        if unit:
-            open_visit = None
-            if str(data.get("visit_id", "")).isdigit():
-                open_visit = visits_for(user).filter(status__in=PENDING).select_for_update().filter(pk=data["visit_id"], unit=unit).first()
-            owner = visit_from_report(unit, data, user, when, report_id, open_visit)
-            report = FieldReport.objects.create(visit=owner, **kept)
-            answer = {"visit_id": owner.pk, "number": owner.number, "url": _base(request) + owner.get_absolute_url(), "pending": False}
-            files = {"visit": owner}
-        else:
-            # The site or unit is not in the database: keep the whole report under Daily Reports until someone adds them.
-            owner = report = FieldReport.objects.create(**kept)
-            answer = {"visit_id": None, "number": "", "url": _base(request) + reverse("maintenance_reports") + "#daily", "pending": True}
-            files = {"field_report": owner}
-        if pdf:
-            new_attachment(pdf, user, Attachment.Kind.REPORT, **files)
-        for p in photos:
-            new_attachment(p, user, Attachment.Kind.PHOTO, **files)
-        for p in signatures:
-            new_attachment(p, user, Attachment.Kind.SIGNATURE, **files)
-        record(user, "app_report_uploaded", owner, f"{text('technician', 100)} · {len(photos)} photos")
-        what = " · ".join(x for x in (str(unit) if unit else text("client", 200) or text("site", 200), text("machine_model", 120)) if x) or report_id
-        notify_report(report, "reports.review", "received", f"New maintenance report waiting for the foreman: {what}",
-                      f"تقرير صيانة جديد بانتظار رئيس العمال: {what}", actor=user)
+    try:
+        with transaction.atomic():
+            if unit:
+                open_visit = None
+                if str(data.get("visit_id", "")).isdigit():
+                    open_visit = visits_for(user).filter(status__in=PENDING).select_for_update().filter(pk=data["visit_id"], unit=unit).first()
+                owner = visit_from_report(unit, data, user, when, report_id, open_visit)
+                report = FieldReport.objects.create(visit=owner, **kept)
+                answer = {"visit_id": owner.pk, "number": owner.number, "url": _base(request) + owner.get_absolute_url(), "pending": False}
+                files = {"visit": owner}
+            else:
+                # The site or unit is not in the database: keep the whole report under Daily Reports until someone adds them.
+                owner = report = FieldReport.objects.create(**kept)
+                answer = {"visit_id": None, "number": "", "url": _base(request) + reverse("maintenance_reports") + "#daily", "pending": True}
+                files = {"field_report": owner}
+            if pdf:
+                new_attachment(pdf, user, Attachment.Kind.REPORT, **files)
+            for p in photos:
+                new_attachment(p, user, Attachment.Kind.PHOTO, **files)
+            for p in signatures:
+                new_attachment(p, user, Attachment.Kind.SIGNATURE, **files)
+            record(user, "app_report_uploaded", owner, f"{text('technician', 100)} · {len(photos)} photos")
+            what = " · ".join(x for x in (str(unit) if unit else text("client", 200) or text("site", 200), text("machine_model", 120)) if x) or report_id
+            notify_report(report, "reports.review", "received", f"New maintenance report waiting for the foreman: {what}",
+                          f"تقرير صيانة جديد بانتظار رئيس العمال: {what}", actor=user)
+    except IntegrityError:
+        # The same report arrived twice at once (the phone retried a slow upload). The database refuses the second copy at its first
+        # row, before any file is written, so the phone gets the first copy's answer instead of an error.
+        already = _already_uploaded(request, report_id)
+        if already:
+            return already
+        raise
     return JsonResponse({**answer, "already_uploaded": False}, status=201)

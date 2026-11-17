@@ -18,6 +18,12 @@ if ($envMap['LOCAL_PG'] -eq '1') {
         Start-Process -FilePath "$bin\pg_ctl.exe" -ArgumentList 'start','-D','.pgdata','-w','-l','.pgdata\server.log','-o',"`"-p $($envMap['DB_PORT']) -c listen_addresses=127.0.0.1`"" -WindowStyle Hidden -PassThru | ForEach-Object { $_.WaitForExit() }
     }
 }
+# A code update can bring a database upgrade: back up the real data before it runs, and stop if the backup fails.
+& $py manage.py migrate --check | Out-Null
+if ($LASTEXITCODE) {
+    & $py manage.py backup
+    if ($LASTEXITCODE) { throw 'The backup before the database upgrade failed, so the upgrade was not run. Nothing was changed.' }
+}
 & $py manage.py migrate --noinput
 $listen = if ($envMap['LISTEN']) { $envMap['LISTEN'] } else { '127.0.0.1:8000' }
 $worker = Start-Process $py -ArgumentList 'manage.py', 'worker' -WindowStyle Hidden -PassThru `

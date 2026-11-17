@@ -17,7 +17,7 @@ from django.utils.html import format_html
 from .. import forms as f
 from ..i18n import t
 from ..models import (Attachment, Category, Client, Country, EquipmentModel, FieldDefinition, Manufacturer, Subtype, Unit)
-from ..services import (clients_for, contracts_for, new_attachment, reassign_category, reassign_subtype, record, spec_rows,
+from ..services import (clients_for, contracts_for, documents_for, new_attachment, reassign_category, reassign_subtype, record, spec_rows,
                         sync_unit_contracts, units_for, visits_for)
 from .common import (action, active_badge, badge, form_page, link, list_page, post_only, requires, saved, toggle_active, try_delete)
 from .documents import document_rows_for_unit, document_rows_for_units
@@ -598,7 +598,7 @@ def model_detail(request, pk):
     x = get_object_or_404(EquipmentModel.objects.select_related("manufacturer", "category", "subtype"), pk=pk)
     return render(request, "model_detail.html", {
         "model": x, "specs": spec_rows(model=x), "units": units_for(request.user).filter(model=x, is_active=True).select_related("client"),
-        "documents": x.documents.filter(is_archived=False).select_related("doc_type") if request.user.has("documents.view") else None,
+        "documents": documents_for(request.user).filter(model=x, is_archived=False).select_related("doc_type") if request.user.has("documents.view") else None,
         "images": x.attachments.all(), "image_form": f.AttachmentForm(kinds=[Attachment.Kind.PRODUCT], images_only=True),
     })
 

@@ -1,7 +1,9 @@
 """Contracts, schedules, visits and the calendar."""
 import calendar as pycal
 import hashlib
+import io
 import json
+import zipfile
 from urllib.parse import quote
 from datetime import date, timedelta
 
@@ -307,7 +309,7 @@ def visit_list(request):
         today = timezone.localdate()
         sources = [("overdue", "Overdue", qs.with_status("overdue").order_by("scheduled_date", "pk"), 50),
                    ("todo", "To Do", qs.open().filter(scheduled_date__gte=today).order_by("scheduled_date", "pk"), 50),
-                   ("in_progress", "In Progress", qs.filter(status="in_progress").order_by("scheduled_date", "pk"), 50),
+                   ("in_progress", "In Progress", qs.with_status("in_progress").order_by("scheduled_date", "pk"), 50),
                    ("completed", "Completed", qs.filter(status="completed").order_by("-actual_date", "-scheduled_date", "-pk"), 30)]
         columns = [(key, label, list(q[:cap]), q.count()) for key, label, q, cap in sources]
         return render(request, "visits_board.html", {"title": t("Maintenance Visits"), "columns": columns, "form": form, "filtered": len(request.GET) > 1})
@@ -416,9 +418,10 @@ def visit_cancel(request, pk):
     return redirect(v)
 
 
-@requires("visits.update")
+@requires("visits.manage")
 def visit_start(request, pk):
-    """Start Visit: choose the technician who receives it on his phone, then start it."""
+    """Start Visit: choose the technician who receives it on his phone, then start it. Office only, like assigning a visit:
+    a technician's own report closes the visit, so he never needs this."""
     v = _visit_or_404(request, pk)
     if v.status not in ("scheduled", "rescheduled"):
         return redirect(v)
@@ -641,6 +644,9 @@ def maintenance_report_step(request, pk):
     return redirect("maintenance_report_view", pk=fr.pk)
 
 
+MAX_EMAIL_PDF = 15 * 1024 * 1024  # Outlook stops at 20-25 MB per email, and attaching adds about a third
+
+
 def _report_subject(fr):
     unit = fr.visit.unit if fr.visit else None
     return " – ".join(x for x in ("Maintenance report", unit.name if unit else fr.site or fr.client_name, fr.machine_model, date_format(fr.report_date, "j M Y")) if x)
@@ -673,8 +679,17 @@ def maintenance_report_pdf(request, pk):
                                [a for a in files if a.kind == Attachment.Kind.SIGNATURE])
     if request.GET.get("email"):
         record(request.user, "report_email_prepared", fr, _report_subject(fr))
-    response = HttpResponse(content, content_type="application/pdf")
-    response["Content-Disposition"] = f'attachment; filename="ASEE_Report_{fr.visit.number if fr.visit else fr.pk}.pdf"'
+    name = f"ASEE_Report_{fr.visit.number if fr.visit else fr.pk}"
+    if len(content) <= MAX_EMAIL_PDF:
+        response = HttpResponse(content, content_type="application/pdf")
+        response["Content-Disposition"] = f'attachment; filename="{name}.pdf"'
+        return response
+    # Too big for most mailboxes: the same PDF in a zip, packed as tightly as zip allows.
+    packed = io.BytesIO()
+    with zipfile.ZipFile(packed, "w", zipfile.ZIP_DEFLATED, compresslevel=9) as z:
+        z.writestr(f"{name}.pdf", content)
+    response = HttpResponse(packed.getvalue(), content_type="application/zip")
+    response["Content-Disposition"] = f'attachment; filename="{name}.zip"'
     return response
 
 

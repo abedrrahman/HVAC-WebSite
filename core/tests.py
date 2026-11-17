@@ -530,6 +530,31 @@ class PhoneApp(Base):
         self.assertIn("Voltage: 400", visit.report.findings)
         self.assertEqual((visit.report.parts_used, visit.attachments.count()), ("Filter: 2 pcs", 1))
 
+    def test_the_visit_sent_to_the_phone_comes_before_an_older_missed_one(self):
+        Visit.objects.create(unit=self.c1, client=self.client_a, scheduled_date=self.today - timedelta(days=30), technician=self.tech)
+        sent = Visit.objects.create(unit=self.c1, client=self.client_a, scheduled_date=self.today + timedelta(days=5), technician=self.tech, status="in_progress")
+        data = self.client.get(reverse("api_sync"), **self.token("tech")).json()
+        self.assertEqual(data["visits"][0]["id"], sent.pk)  # the app reports on the first visit listed for a unit
+
+    def test_a_report_sent_twice_at_once_answers_already_uploaded(self):
+        from .views import api
+        FieldReport.objects.create(app_report_id="r-dup", data={}, report_date=self.today)  # the other copy, saved while this one was checked
+        real, calls = api._already_uploaded, []
+        # The first check misses the other copy, as it would in a real race; the check after the database refuses finds it.
+        with mock.patch.object(api, "_already_uploaded", lambda request, rid: real(request, rid) if calls.append(rid) or len(calls) > 1 else None):
+            r = self.client.post(reverse("api_report"), {"report": json.dumps({"id": "r-dup", "unit_id": self.c1.pk})}, **self.token("eng"))
+        self.assertEqual((r.status_code, r.json()["already_uploaded"], Visit.objects.filter(app_report_id="r-dup").count()), (200, True, 0))
+
+    def test_a_model_page_lists_only_documents_the_user_may_open(self):
+        sales = User.objects.create_user("sales", password="x", role=Role.objects.create(name_en="Sales", permissions=["manufacturers.view", "documents.view"]))
+        shared, private = self.doc("Model manual"), self.doc("Hikma commissioning")
+        Document.objects.filter(pk__in=[shared.pk, private.pk]).update(model=self.lxv)
+        DocumentAssignment.objects.create(document=shared, level="model", model=self.lxv)
+        DocumentAssignment.objects.create(document=private, level="unit", unit=self.c1)  # one client's unit only
+        self.client.force_login(sales)
+        page = self.client.get(reverse("model_detail", args=[self.lxv.pk]))
+        self.assertEqual([d.pk for d in page.context["documents"]], [shared.pk])
+
     def test_report_for_a_unit_out_of_scope_waits_and_touches_nothing(self):
         Visit.objects.create(unit=self.c1, client=self.client_a, scheduled_date=self.today, technician=self.tech)
         r = self.client.post(reverse("api_report"), {"report": json.dumps({"id": "r-2", "unit_id": self.b1.pk})}, **self.token("tech"))
@@ -651,6 +676,10 @@ class PhoneApp(Base):
         merged = pdfium.PdfDocument(pdf.content)
         self.assertEqual((pdf["Content-Type"], len(merged) >= 2), ("application/pdf", True))  # the approved report, then the signed phone pages
         merged.close()
+        with mock.patch("core.views.maintenance.MAX_EMAIL_PDF", 100):  # too big for an email: the same PDF comes inside a zip
+            packed = self.client.get(reverse("maintenance_report_pdf", args=[fr.pk]))
+        with zipfile.ZipFile(io.BytesIO(packed.content)) as z:
+            self.assertEqual((packed["Content-Type"], z.namelist(), z.read(z.namelist()[0])[:5]), ("application/zip", [f"ASEE_Report_{fr.visit.number}.pdf"], b"%PDF-"))
         self.assertEqual(list(ActivityLog.objects.filter(target_type="FieldReport", target_id=fr.pk).order_by("pk").values_list("action", flat=True)),
                          ["report_edited", "report_sent_to_engineer", "report_edited", "report_approved", "report_email_prepared"])
 
@@ -1096,11 +1125,13 @@ class Scheduling(Base):
         today = self.today
         cases = {"overdue": (today - timedelta(days=1), "scheduled"), "due": (today, "scheduled"), "upcoming": (today + timedelta(days=3), "scheduled"),
                  "scheduled": (today + timedelta(days=30), "scheduled"), "rescheduled": (today + timedelta(days=2), "rescheduled"),
-                 "in_progress": (today - timedelta(days=4), "in_progress"), "completed": (today, "completed"), "cancelled": (today, "cancelled")}
-        for expected, (d, base) in cases.items():
+                 "in_progress": (today, "in_progress"), "completed": (today, "completed"), "cancelled": (today, "cancelled")}
+        # A visit sent to a phone and never reported on becomes overdue once its date has passed.
+        for expected, (d, base) in [*cases.items(), ("overdue", (today - timedelta(days=4), "in_progress"))]:
             v = Visit.objects.create(unit=self.b1, client=self.client_b, scheduled_date=d, status=base)
             self.assertEqual(v.display_status, expected)
             self.assertTrue(Visit.objects.with_status(expected).filter(pk=v.pk).exists(), expected)
+            self.assertFalse(base == "in_progress" and expected == "overdue" and Visit.objects.with_status("in_progress").filter(pk=v.pk).exists())
             v.delete()
 
 
@@ -1297,9 +1328,12 @@ class Pages(Base):
     def test_visit_lifecycle(self):
         c, doc, v = self.populate()
         self.client.force_login(self.tech)
-        self.assertEqual(self.client.post(reverse("visit_start", args=[v.pk])).status_code, 404)  # not assigned
         Visit.objects.filter(pk=v.pk).update(technician=self.tech)
+        # Sending a visit to a phone is the office's job: a technician cannot hand his visit to someone else.
+        self.assertEqual(self.client.post(reverse("visit_start", args=[v.pk]), {"technician": self.tech.pk}).status_code, 403)
+        self.client.force_login(self.engineer)
         self.client.post(reverse("visit_start", args=[v.pk]), {"technician": self.tech.pk})
+        self.client.force_login(self.tech)
         v.refresh_from_db()
         self.assertEqual(v.status, "in_progress")
         self.assertEqual(self.client.post(reverse("visit_cancel", args=[v.pk]), {"reason": "x"}).status_code, 403)
