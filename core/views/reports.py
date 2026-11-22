@@ -101,7 +101,7 @@ REPORTS = {
     "contracts-expiring": ("Contracts approaching expiration", "contracts.view", _contract_report("expiring")),
     "visits-scheduled": ("Scheduled maintenance visits", "visits.view", _visit_report(lambda q: q.open().filter(scheduled_date__gte=timezone.localdate()).order_by("scheduled_date"))),
     "visits-completed": ("Completed maintenance visits", "visits.view", _visit_report(lambda q: q.filter(status="completed").order_by("-actual_date"))),
-    "visits-overdue": ("Overdue maintenance visits", "visits.view", _visit_report(lambda q: q.with_status("overdue").order_by("scheduled_date"))),
+    "visits-overdue": ("Overdue maintenance visits", "visits.overdue", _visit_report(lambda q: q.with_status("overdue").order_by("scheduled_date"))),
     "history-equipment": ("Maintenance history by equipment", "visits.view", lambda r, fl: (VISIT_COLS, [_visit_row(v) for v in _history(r, fl).order_by("unit__name_en", "-actual_date")])),
     "history-client": ("Maintenance history by client", "visits.view", lambda r, fl: (VISIT_COLS, [_visit_row(v) for v in _history(r, fl).order_by("client__name_en", "-actual_date")])),
 }

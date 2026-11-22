@@ -379,6 +379,18 @@ def visit_messages(v, days):
     return en, ar
 
 
+def overdue_messages(v, days):
+    kind_en = v.get_visit_type_display()
+    with translation.override("ar"):
+        kind_ar = t(kind_en)
+        unit_ar, client_ar = v.unit.name, v.client.name
+    ago_ar = f"منذ {days} {'يوم' if days == 1 or days > 10 else 'أيام'}"
+    en = (f"Overdue: {kind_en} for {v.unit.name_en} at {v.client.name_en} was due on {_d(v.scheduled_date, 'en')} "
+          f"({days} day{'' if days == 1 else 's'} ago) and has no report yet.")
+    ar = f"زيارة متأخرة: {kind_ar} للوحدة {unit_ar} لدى {client_ar} كانت مستحقة بتاريخ {_d(v.scheduled_date, 'ar')} ({ago_ar}) ولم يصل تقريرها بعد."
+    return en, ar
+
+
 def contract_messages(c, days):
     with translation.override("ar"):
         client_ar = c.client.name
@@ -413,6 +425,15 @@ def run_reminders(today=None):
             key = f"visit:{v.pk}:{v.scheduled_date.isoformat()}"
             rows = [Notification(user=u, kind="visit", dedupe_key=key, message_en=en, message_ar=ar, visit=v) for u in people.values()]
             Notification.objects.bulk_create(rows, ignore_conflicts=True)
+
+    if cfg.visit_reminders_enabled:
+        late_watchers = _users_with("visits.overdue")
+        late = Visit.objects.filter(status__in=["scheduled", "rescheduled", "in_progress"], scheduled_date__lt=today, unit__is_active=True)  # the overdue rule, on the given day
+        for v in late.select_related("unit", "client"):
+            en, ar = overdue_messages(v, (today - v.scheduled_date).days)
+            key = f"overdue:{v.pk}:{v.scheduled_date.isoformat()}"
+            Notification.objects.bulk_create([Notification(user=u, kind="visit", dedupe_key=key, message_en=en, message_ar=ar, visit=v) for u in late_watchers],
+                                             ignore_conflicts=True)
 
     if cfg.contract_reminders_enabled:
         watchers = _users_with("notifications.contracts")

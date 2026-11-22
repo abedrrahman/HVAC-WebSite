@@ -287,7 +287,7 @@ def filter_visits(request):
         for key, lookup in {"client": "client", "country": "client__country", "category": "unit__category", "contract": "contract", "engineer": "engineer", "technician": "technician"}.items():
             if d[key]:
                 qs = qs.filter(**{lookup: d[key]})
-        if d["status"]:
+        if d["status"] and (d["status"] != "overdue" or request.user.has("visits.overdue")):  # overdue lists are for foremen and admins
             qs = qs.with_status(d["status"])
         if d["start"]:
             qs = qs.filter(scheduled_date__gte=d["start"])
@@ -311,6 +311,8 @@ def visit_list(request):
                    ("todo", "To Do", qs.open().filter(scheduled_date__gte=today).order_by("scheduled_date", "pk"), 50),
                    ("in_progress", "In Progress", qs.with_status("in_progress").order_by("scheduled_date", "pk"), 50),
                    ("completed", "Completed", qs.filter(status="completed").order_by("-actual_date", "-scheduled_date", "-pk"), 30)]
+        if not request.user.has("visits.overdue"):  # overdue visits are shown to foremen and admins only
+            sources = sources[1:]
         columns = [(key, label, list(q[:cap]), q.count()) for key, label, q, cap in sources]
         return render(request, "visits_board.html", {"title": t("Maintenance Visits"), "columns": columns, "form": form, "filtered": len(request.GET) > 1})
     acts = [action("Board View", reverse("visit_list"), "calendar", False)]

@@ -1167,6 +1167,23 @@ class Reminders(Base):
         run_reminders(date(2026, 12, 16))  # worker was down on the 13th
         self.assertIn("in 4 days", Notification.objects.get(user=self.tech).message_en)
 
+    def test_overdue_visits_are_for_foremen_and_admins_only(self):
+        foreman = User.objects.create_user("fore2", password="x", role=Role.objects.get(name_en="Foreman"))
+        v = Visit.objects.create(unit=self.c1, client=self.client_a, scheduled_date=date(2026, 12, 10), technician=self.tech)
+        run_reminders(date(2026, 12, 13)), run_reminders(date(2026, 12, 14))  # twice: still one notification each
+        told = Notification.objects.filter(visit=v, dedupe_key__startswith="overdue:")
+        self.assertEqual(set(told.values_list("user__username", flat=True)), {"fore2", "admin"})  # not the engineer or the technician
+        self.assertEqual(told.get(user=foreman).message_en, "Overdue: Preventive Maintenance for Chiller 01 at Hikma was due on 10 December 2026 (3 days ago) and has no report yet.")
+        Visit.objects.filter(pk=v.pk).update(scheduled_date=self.today - timedelta(days=2))
+        for user, sees in ((self.engineer, False), (foreman, True)):
+            self.client.force_login(user)
+            board = [key for key, *_ in self.client.get(reverse("visit_list")).context["columns"]]
+            dash = self.client.get(reverse("dashboard")).context
+            self.assertEqual(("overdue" in board, any(c[0] == "Overdue Visits" for c in dash["attention_cards"]), bool(dash["overdue"])), (sees, sees, sees))
+        for user, code in ((self.engineer, 403), (self.admin, 200)):  # the engineer can open other reports, not this one; foremen have no Reports menu
+            self.client.force_login(user)
+            self.assertEqual(self.client.get(reverse("report_view", args=["visits-overdue"])).status_code, code)
+
     def test_closed_visits_get_no_reminder(self):
         Visit.objects.create(unit=self.c1, client=self.client_a, scheduled_date=date(2026, 12, 20), technician=self.tech, status="cancelled")
         self.assertEqual(run_reminders(date(2026, 12, 13)), 0)

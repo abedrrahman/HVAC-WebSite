@@ -70,14 +70,14 @@
 <div class="grid dash-main">
   <div class="card">
     <nav class="tabs">
-      <a href="#overdue">{% t "Overdue" %}</a>
+      {% if late %}<a href="#overdue">{% t "Overdue" %}</a>{% endif %}
       <a href="#upcoming">{% t "Upcoming" %}</a>
       <a href="#expiring">{% t "Expiring Soon" %}</a>
       <a href="#new-units">{% t "New Equipment" %}</a>
       <a href="#new-docs">{% t "New Documents" %}</a>
       <a href="#alerts">{% t "Notifications" %}</a>
     </nav>
-    <ul id="overdue" class="tab-panel mini-list">{% for v in overdue %}<li><span><a href="{{ v.get_absolute_url }}">{{ v.unit.name }}</a><div class="meta">{{ v.client.name }} · {{ v.scheduled_date|longdate }}</div></span>{% badge v.display_status v.status_label %}</li>{% empty %}<li class="empty">{% icon "check" 18 %} {% t "Nothing overdue" %}</li>{% endfor %}</ul>
+    {% if late %}<ul id="overdue" class="tab-panel mini-list">{% for v in overdue %}<li><span><a href="{{ v.get_absolute_url }}">{{ v.unit.name }}</a><div class="meta">{{ v.client.name }} · {{ v.scheduled_date|longdate }}</div></span>{% badge v.display_status v.status_label %}</li>{% empty %}<li class="empty">{% icon "check" 18 %} {% t "Nothing overdue" %}</li>{% endfor %}</ul>{% endif %}
     <ul id="upcoming" class="tab-panel mini-list">{% for v in upcoming %}<li><span><a href="{{ v.get_absolute_url }}">{{ v.unit.name }}</a><div class="meta">{{ v.client.name }} · {{ v.scheduled_date|longdate }}</div></span>{% badge v.display_status v.status_label %}</li>{% empty %}<li class="empty">{% t "No visits planned" %}</li>{% endfor %}</ul>
     <ul id="expiring" class="tab-panel mini-list">{% for c in expiring %}<li><span><a href="{{ c.get_absolute_url }}">{{ c.number }}</a><div class="meta">{{ c.client.name }} · {{ c.end_date|longdate }}</div></span></li>{% empty %}<li class="empty">{% t "No records found." %}</li>{% endfor %}</ul>
     <ul id="new-units" class="tab-panel mini-list">{% for u in recent_units %}<li><span><a href="{{ u.get_absolute_url }}">{{ u.name }}</a><div class="meta">{{ u.client.name }} · {{ u.category.name }}</div></span></li>{% empty %}<li class="empty">{% t "No records found." %}</li>{% endfor %}</ul>

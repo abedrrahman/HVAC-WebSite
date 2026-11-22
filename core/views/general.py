@@ -140,11 +140,14 @@ def dashboard(request):
         m.update(pct=round(m["n"] / top * 100), now=m["date"].month == today.month and m["date"].year == today.year, peak=m["n"] == top and m["n"] > 0)
     status = [("overdue", "Overdue", maintenance_cards[5][1]), ("todo", "To Do", maintenance_cards[2][1]),
               ("in_progress", "In Progress", visits.with_status("in_progress").count()), ("completed", "Completed", maintenance_cards[6][1])]
+    late = u.has("visits.overdue")  # overdue visits are shown to foremen and admins only
+    if not late:
+        status = status[1:]
     total = sum(n for _, _, n in status)
     return render(request, "dashboard.html", {
         "today": today, "maintenance_cards": maintenance_cards, "months": months, "has_visits": any(m["n"] for m in months),
         "status_parts": [{"key": k, "label": label, "n": n, "pct": round(n / total * 100) if total else 0} for k, label, n in status], "status_total": total,
-        "attention_cards": [maintenance_cards[i] for i in (5, 3, 1)],
+        "attention_cards": [maintenance_cards[i] for i in ((5, 3, 1) if late else (3, 1))], "late": late,
         "summary_cards": [maintenance_cards[i] for i in (0, 2, 4, 6)],
         "equipment_cards": [
             ("Total Equipment Units", units.count(), reverse("unit_list"), "equipment"),
@@ -157,7 +160,7 @@ def dashboard(request):
         "recent_units": units.select_related("client", "category").order_by("-created_at")[:6],
         "recent_docs": docs.select_related("doc_type").order_by("-uploaded_at")[:6],
         "upcoming": visits.open().filter(scheduled_date__gte=today).select_related("unit", "client").order_by("scheduled_date")[:6],
-        "overdue": visits.with_status("overdue").select_related("unit", "client").order_by("scheduled_date")[:6],
+        "overdue": visits.with_status("overdue").select_related("unit", "client").order_by("scheduled_date")[:6] if late else [],
         "expiring": contracts.with_status("expiring").exclude(renewals__status="active").select_related("client").order_by("end_date")[:6],
         "notifications": u.notifications.all()[:6],
         "show_setup": u.has("catalog.manage") and not Unit.objects.exists(),

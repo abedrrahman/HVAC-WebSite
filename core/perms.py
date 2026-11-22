@@ -7,7 +7,7 @@ PERMISSIONS = {
     "Technical documents": ["documents.view", "documents.upload", "documents.manage"],
     "Maintenance contracts": ["contracts.view", "contracts.edit"],
     "Maintenance schedules": ["schedules.view", "schedules.manage"],
-    "Maintenance visits": ["visits.view", "visits.manage", "visits.update", "visits.attach"],
+    "Maintenance visits": ["visits.view", "visits.manage", "visits.update", "visits.attach", "visits.overdue"],
     "Maintenance reports from the phone": ["reports.review", "reports.approve"],
     "Reports": ["reports.view"],
     "Notifications": ["notifications.visits", "notifications.contracts"],
@@ -27,6 +27,7 @@ PERMISSION_LABELS = {
     "schedules.view": "View maintenance schedules", "schedules.manage": "Create and edit maintenance schedules",
     "visits.view": "View visits", "visits.manage": "Create, assign, reschedule and cancel visits",
     "visits.update": "Update visit progress and complete visits", "visits.attach": "Upload visit reports and photographs",
+    "visits.overdue": "See overdue visits and get a notification when a visit becomes overdue",
     "reports.review": "Foreman: read incoming phone reports, correct readings and send them to the engineer",
     "reports.approve": "Engineer: read, correct and approve phone reports, and send them to the client",
     "reports.view": "View and export reports",
@@ -46,7 +47,7 @@ DEFAULT_ROLES = {
     ],
     ("Foreman", "رئيس عمال"): [
         "equipment.view", "clients.view", "documents.view", "schedules.view", "visits.view", "visits.update", "visits.attach",
-        "scope.all", "reports.review",
+        "scope.all", "reports.review", "visits.overdue",
     ],
     ("Technician", "فني"): [
         "equipment.view", "documents.view", "schedules.view", "visits.view", "visits.update", "visits.attach",
