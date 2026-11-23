@@ -167,9 +167,9 @@ def unit_list(request):
     if request.user.has("catalog.manage"):
         actions.append(action("Categories & Subtypes", reverse("catalog"), "settings", False))
     two = lambda top, small: format_html('{}<div class="meta">{}</div>', top, small) if small else top  # country and subtype ride under their parent, so the table fits without sideways scrolling
-    return list_page(request, "Equipment", qs, ["Equipment Name", "Client", "Project", "Main Equipment Type", "Manufacturer", "Model", "Serial Number", "Equipment Status"],
+    return list_page(request, "Equipment", qs, ["Equipment Name", "Client", "Project", "Main Equipment Type", "Model", "Serial Number", "Equipment Status"],
                      lambda u: [link(u), two(link(u.client), u.client.country.name), u.project or "—", two(u.category.name, u.subtype.name if u.subtype else ""),
-                                u.model.manufacturer.name, u.model.model_number, u.serial_number or "—", badge(u.status, u.get_status_display())],
+                                two(u.model.model_number, u.model.manufacturer.name), u.serial_number or "—", badge(u.status, u.get_status_display())],
                      filters=form, actions=actions, keep_view="list", back=(reverse("unit_list"), t("All equipment types")),
                      phone_card=lambda u: {"url": u.get_absolute_url(), "icon": "equipment", "name": u.name, "meta": f"{u.client.name} · {u.model.model_number}", "badge": badge(u.status, u.get_status_display())})
 

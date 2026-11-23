@@ -37,8 +37,8 @@
 {% for group in view.groups %}
 <div class="section-title">{% if group.kind == "general" %}{% t "General readings" %}{% elif group.kind == "compressor" %}{% t "Compressor" %} {{ group.number }}{% else %}{% t "Circuit" %} {{ group.number }}{% endif %}</div>
 <div class="readings">
-  {% for r in group.readings %}<div class="reading{% if r.bad %} bad{% endif %}"{% if r.source %} title="{{ r.source }}"{% endif %}><span class="l">{{ r.label }}{% if r.label_ar %} · <span lang="ar" dir="rtl">{{ r.label_ar }}</span>{% endif %}</span><span class="v">{{ r.value }}{% if r.unit %} <small>{{ r.unit }}</small>{% endif %}</span>
-    {% if r.bad %}<span class="limit">{% icon "alert" 14 %} {% t "Outside the limit" %}{% if r.limit %}: {{ r.limit }}{% endif %}</span>{% elif r.limit %}<span class="limit">{% t "Limit" %}: {{ r.limit }}</span>{% endif %}</div>{% endfor %}
+  {% for r in group.readings %}<div class="reading{% if r.bad %} bad{% endif %}"{% if r.source %} title="{{ r.source }}"{% endif %}><span class="l">{% if request.LANGUAGE_CODE == "ar" and r.label_ar %}{{ r.label_ar }}<span class="l-ar" lang="en" dir="ltr">{{ r.label }}</span>{% else %}{{ r.label }}{% if r.label_ar %}<span class="l-ar" lang="ar" dir="rtl">{{ r.label_ar }}</span>{% endif %}{% endif %}</span><span class="v"><bdi dir="ltr">{{ r.value }}{% if r.unit %} <small>{{ r.unit }}</small>{% endif %}</bdi></span>
+    {% if r.bad %}<span class="limit">{% icon "alert" 14 %} <span>{% t "Outside the limit" %}{% if r.limit %}: <bdi dir="ltr">{{ r.limit }}</bdi>{% endif %}</span></span>{% elif r.limit %}<span class="limit"><span>{% t "Limit" %}: <bdi dir="ltr">{{ r.limit }}</bdi></span></span>{% endif %}</div>{% endfor %}
 </div>
 {% with s=group.superheat %}{% if s %}
 <div class="card superheat">
@@ -46,7 +46,7 @@
   {% if s.problem %}
   <div class="note">{% t s.problem %} ({{ s.refrigerant }} · {{ s.pressure }} {{ group.pressure_unit }} · {{ s.temp }} {{ group.temp_unit }})</div>
   {% else %}
-  <div class="sh-value"><span class="n">{{ s.value }} <small>{{ s.unit }}</small></span> <span class="badge sh-{{ s.zone }}">{% t s.zone_label %}</span></div>
+  <div class="sh-value"><span class="n"><bdi dir="ltr">{{ s.value }} <small>{{ s.unit }}</small></bdi></span> <span class="badge sh-{{ s.zone }}">{% t s.zone_label %}</span></div>
   <div class="sh-meter" role="img" aria-label="{% t "Superheat" %} {{ s.value }} {{ s.unit }}: {% t s.zone_label %}">
     <span class="sh-zone sh-low" style="width:{{ s.low_width }}%"></span><span class="sh-zone sh-normal" style="width:{{ s.normal_width }}%"></span><span class="sh-zone sh-high"></span>
     <span class="sh-mark" style="inset-inline-start:{{ s.position }}%"></span>

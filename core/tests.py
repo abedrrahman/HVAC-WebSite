@@ -607,6 +607,7 @@ class PhoneApp(Base):
         groups = page.context["view"]["groups"]
         self.assertEqual([(g["kind"], g["number"], len(g["readings"])) for g in groups], [("general", 0, 2), ("compressor", 1, 1), ("circuit", 2, 2)])
         self.assertEqual(groups[2]["superheat"]["value"], "6.1")
+        self.assertEqual([r["label"] for r in groups[2]["readings"]], ["Suction Pressure", "Suction Temp"])  # the heading already says Circuit 2
         self.client.cookies["lang"] = "ar"  # Arabic writes decimals with a comma; the meter's position must not
         self.assertContains(self.client.get(reverse("maintenance_report_view", args=[fr.pk])), "inset-inline-start:30.6%")
         del self.client.cookies["lang"]

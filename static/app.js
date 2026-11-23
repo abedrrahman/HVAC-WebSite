@@ -164,7 +164,7 @@ if (matchMedia("(max-width: 860px)").matches) document.querySelectorAll("[data-f
 const tabs = [...document.querySelectorAll(".tabs a[href^='#']")];
 function showTab() {
   if (!tabs.length) return;
-  const wanted = tabs.find(a => a.getAttribute("href") === location.hash) || tabs[0];
+  const wanted = tabs.find(a => a.getAttribute("href") === location.hash) || tabs.find(a => a.hasAttribute("data-default")) || tabs[0];
   tabs.forEach(a => {
     const on = a === wanted;
     a.classList.toggle("active", on);
@@ -195,7 +195,7 @@ document.addEventListener("submit", e => {
 addEventListener("pageshow", e => { if (e.persisted) document.querySelectorAll(".btn.busy").forEach(b => { b.disabled = false; b.classList.remove("busy"); }); });
 
 // Success messages leave by themselves; errors stay until read.
-document.querySelectorAll(".content > .alert.success").forEach(a => setTimeout(() => a.remove(), 4500));
+document.querySelectorAll(".alert.flash.success").forEach(a => setTimeout(() => a.remove(), 4500));
 
 // Dark mode, remembered per browser.
 // "Send by email": the link downloads the PDF; a moment later the mail program opens with the email filled in.

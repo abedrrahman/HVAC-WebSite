@@ -4,7 +4,7 @@
 <div class="page-head"><h1>{% t "Maintenance Reports" %}</h1></div>
 <nav class="tabs">
   <a href="#contract">{% t "Contract reports" %} ({{ contract_total }})</a>
-  <a href="#daily">{% t "Daily reports" %} ({{ daily_total }}{% if waiting %} + {{ waiting|length }} {% t "waiting" %}{% endif %})</a>
+  <a href="#daily"{% if not contract_total %} data-default{% endif %}>{% t "Daily reports" %} ({{ daily_total }}{% if waiting %} + {{ waiting|length }} {% t "waiting" %}{% endif %})</a>
 </nav>
 
 <section id="contract" class="tab-panel card flush">

@@ -201,9 +201,14 @@ def report_view(data, limits=None):
         kind, number = (part.group(1), int(part.group(2))) if part else ("general", 0)
         short = re.sub(r"^(compressor|circuit)_\d+_", "", key)
         group = groups.setdefault((kind, number), {"kind": kind, "number": number, "readings": [], "raw": {}})
-        label = text(r, "label_en") or text(r, "label_ar") or key  # both languages are shown; a custom box may have only one
+        label_en, label_ar = text(r, "label_en"), text(r, "label_ar")
+        if part:  # under the "Compressor 1" heading the box says "Amps L1", not "Compressor 1 Amps L1"
+            n = part.group(2)
+            label_en = re.sub(rf"^{part.group(1)}\s+{n}\b[\s:·-]*", "", label_en, flags=re.I) or label_en
+            label_ar = re.sub(r"\s{2,}", " ", re.sub(rf"[\s-]*(?:الضاغط|دائرة|الدائرة)\s+{n}\b", "", label_ar)).strip(" -") or label_ar
+        label = label_en or label_ar or key  # both languages are shown; a custom box may have only one
         limit, bad, source = _limit_for(short, text(r, "value"), refrigerant, temp_unit, pressure_unit, limits) or ("", False, "")
-        group["readings"].append({"label": label, "label_ar": text(r, "label_ar") if text(r, "label_ar") != label else "", "value": text(r, "value"),
+        group["readings"].append({"label": label, "label_ar": label_ar if label_ar != label else "", "value": text(r, "value"),
                                   "unit": _unit_for(key, text(r, "value"), temp_unit, pressure_unit), "limit": limit, "bad": bad, "source": source})
         group["raw"][short] = text(r, "value")
     for group in groups.values():

@@ -40,7 +40,7 @@
       </form>
     </header>
     <main class="content" id="content" tabindex="-1">
-      {% for message in messages %}<div class="alert {{ message.tags }}" role="status">{{ message }}</div>{% endfor %}
+      {% for message in messages %}<div class="alert flash {{ message.tags }}" role="status">{{ message }}</div>{% endfor %}
       {% block content %}{% endblock %}
     </main>
   </div>
