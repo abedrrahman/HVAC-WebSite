@@ -1,4 +1,5 @@
 """Equipment units, categories, subtypes, technical fields, clients, manufacturers and models."""
+from collections import defaultdict
 from urllib.parse import urlencode
 
 import segno
@@ -135,10 +136,10 @@ def unit_subtype(request, pk, sub):
 def unit_list(request):
     if not request.GET:  # any search, filter or ?view=list goes to the full table below
         counts = units_for(request.user).filter(is_active=True).order_by().values_list("category").annotate(n=Count("pk"), subs=Count("subtype", distinct=True))
-        totals = {c: (n, subs) for c, n, subs in counts}
+        totals = defaultdict(lambda: (0, 0), {c: (n, subs) for c, n, subs in counts})  # an empty category shows with 0 units
         units_label, subtypes_label = t("Equipment Units"), t("Subtypes")
         cards = sorted(({"category": c, "units": totals[c.pk][0], "name": c.name, "tone": _tone(c), "url": reverse("unit_type", args=[c.pk]), "vt": f"type-{c.pk}",
-                         "stats": [(totals[c.pk][0], units_label), (totals[c.pk][1], subtypes_label)]} for c in Category.objects.filter(pk__in=totals)), key=lambda c: -c["units"])
+                         "stats": [(totals[c.pk][0], units_label), (totals[c.pk][1], subtypes_label)]} for c in Category.objects.filter(Q(pk__in=totals) | Q(is_active=True))), key=lambda c: -c["units"])
         actions = [action("Add Equipment", reverse("unit_new"))] if request.user.has("equipment.edit") else []
         actions.append(action("All equipment", reverse("unit_list") + "?view=list", "", False))
         if request.user.has("catalog.manage"):

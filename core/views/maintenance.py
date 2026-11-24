@@ -23,7 +23,7 @@ from ..i18n import t
 from ..phone_report import report_view
 from ..report_pdf import build_report_pdf
 from ..models import (ActivityLog, Attachment, Category, Client, Contract, Country, FieldReport, Schedule, SystemSettings, Unit, User, Visit, VisitReport, add_months)
-from ..services import (can_edit_report, close_open_contract_visits, dispatch_visits, technicians, contracts_for, copy_for_renewal, field_reports_for, follow_schedule_people, limits_for, new_attachment,
+from ..services import (can_edit_report, reviews_reports, close_open_contract_visits, dispatch_visits, technicians, contracts_for, copy_for_renewal, field_reports_for, follow_schedule_people, limits_for, new_attachment,
                         notify_report, record, report_texts, set_contract_units,
                         sync_contract_visits, unit_conflicts, visit_from_report, visits_for)
 from .common import action, badge, fmt, form_page, link, list_page, post_only, requires, saved
@@ -540,7 +540,7 @@ def maintenance_report_view(request, pk):
         "photos": [a for a in files if a.kind == Attachment.Kind.PHOTO], "pdf": next((a for a in files if a.kind == Attachment.Kind.REPORT), None),
         "signatures": [a for a in files if a.kind == Attachment.Kind.SIGNATURE],
         "can_add": not fr.visit_id and request.user.has("equipment.edit") and request.user.has("clients.edit"),
-        "can_edit": can_edit_report(request.user, fr), "step": _next_step(request.user, fr),
+        "can_edit": can_edit_report(request.user, fr), "step": _next_step(request.user, fr), "show_note": reviews_reports(request.user),
         "can_email": fr.status == FieldReport.Status.APPROVED and (request.user.has("reports.approve") or request.user.has("users.manage")),
         "mailto": _mailto(fr) if fr.status == FieldReport.Status.APPROVED else "",
         "edited": ActivityLog.objects.filter(action="report_edited", target_type="FieldReport", target_id=fr.pk).exists(),
@@ -635,9 +635,11 @@ def maintenance_report_step(request, pk):
     who = "foreman" if new == FieldReport.Status.ENGINEER else "engineer"
     with transaction.atomic():
         # The status in the filter makes two people pressing at once safe: only the first one moves the report on.
-        moved = FieldReport.objects.filter(pk=fr.pk, status=fr.status).update(status=new, **{f"{who}_by": request.user, f"{who}_at": timezone.now()})
+        note = request.POST.get("note", "").strip()[:2000] if who == "foreman" else None  # one way: only the foreman writes to the engineer
+        extra = {"foreman_note": note} if note is not None else {}
+        moved = FieldReport.objects.filter(pk=fr.pk, status=fr.status).update(status=new, **{f"{who}_by": request.user, f"{who}_at": timezone.now()}, **extra)
         if moved:
-            record(request.user, action, fr)
+            record(request.user, action, fr, f"Note to the engineer: {note}" if note else "")
             if tell:
                 what = f"{fr.visit.unit if fr.visit else fr} · {request.user}"
                 notify_report(fr, tell, new, f"Maintenance report approved by the foreman, waiting for your approval: {what}",

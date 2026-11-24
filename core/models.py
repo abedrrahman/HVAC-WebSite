@@ -738,6 +738,7 @@ class FieldReport(models.Model):
     status = models.CharField(max_length=10, choices=Status.choices, default=Status.RECEIVED)
     foreman_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     foreman_at = models.DateTimeField(null=True, blank=True)
+    foreman_note = models.TextField(blank=True)  # the foreman's note to the engineer: shown to reviewers on the website, never in the PDF
     engineer_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")
     engineer_at = models.DateTimeField(null=True, blank=True)
 

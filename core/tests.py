@@ -728,7 +728,7 @@ class PhoneApp(Base):
         self.client.post(reverse("api_report"), {"report": json.dumps(report), "pdf": SimpleUploadedFile("r.pdf", signed.getvalue(), "application/pdf")}, **self.token("tech"))
         fr = FieldReport.objects.get(app_report_id="r-5")
         told = lambda: set(Notification.objects.filter(field_report=fr).values_list("user__username", flat=True))
-        self.assertEqual((fr.status, told()), ("received", {"fore", "admin", "eng"}))  # whoever can do the foreman's step is told first (engineers can too)
+        self.assertEqual((fr.status, told()), ("received", {"fore", "admin"}))  # the foremen are told first, the engineers not yet
         view, url, step = (reverse(n, args=[fr.pk]) for n in ("maintenance_report_view", "maintenance_report_edit", "maintenance_report_step"))
         phone_pdf = fr.visit.attachments.get(kind="report")
 
@@ -738,7 +738,7 @@ class PhoneApp(Base):
         self.assertEqual(self.client.get(reverse("attachment_file", args=[phone_pdf.pk])).status_code, 403)
         self.client.force_login(self.tech)  # the technician who sent it can read it, not change it
         self.assertEqual((self.client.get(view).status_code, self.client.get(url).status_code), (200, 403))
-        self.client.force_login(self.approver)  # not the approver's turn yet
+        self.client.force_login(self.engineer)  # not the engineer's turn yet
         self.assertEqual((self.client.get(url).status_code, self.client.post(step, {"status": "received"}).status_code), (403, 403))
 
         self.client.force_login(foreman)
@@ -756,9 +756,10 @@ class PhoneApp(Base):
         fr.refresh_from_db()
         self.assertEqual((fr.data["checklist_items"][0]["value"], ActivityLog.objects.filter(action="report_edited").count()), ("3.5", 1))
         self.assertRedirects(self.client.get(reverse("visit_report", args=[fr.visit_id])), url)  # one place to edit: the hand-written form would be overwritten
-        self.client.post(step, {"status": "received"})
+        self.client.post(step, {"status": "received", "note": "Oil pressure was low, please check"})
         fr.refresh_from_db()
         self.assertEqual((fr.status, fr.foreman_by, told()), ("engineer", foreman, {"fore", "admin", "eng", "appr"}))
+        self.assertEqual(fr.foreman_note, "Oil pressure was low, please check")  # the foreman's one-way note to the engineer
         self.assertEqual(self.client.get(url).status_code, 403)  # the foreman's turn is over
 
         self.client.force_login(self.engineer)
@@ -781,8 +782,10 @@ class PhoneApp(Base):
         self.assertEqual(list(ActivityLog.objects.filter(target_type="FieldReport", target_id=fr.pk).order_by("pk").values_list("action", flat=True)),
                          ["report_edited", "report_sent_to_engineer", "report_edited", "report_approved", "report_email_prepared"])
 
+        self.assertContains(self.client.get(view), "Oil pressure was low, please check")  # the engineer reads the foreman's note
         self.client.force_login(self.viewer)  # after approval everyone with the visit in scope can read it
         self.assertEqual((self.client.get(view).status_code, self.client.get(reverse("attachment_file", args=[phone_pdf.pk])).status_code), (200, 200))
+        self.assertNotContains(self.client.get(view), "Oil pressure was low")  # the note stays between the foreman and the engineer
         self.client.force_login(self.admin)  # only an administrator can still change it
         self.assertEqual(self.client.get(url).status_code, 200)
 
@@ -1667,6 +1670,12 @@ class Sorting(Base):
         self.assertIn("aaa small", rows[1])  # 1 unit each: a before O, whatever the case
         self.assertIn("Other Co", rows[2])
         self.assertIn("Empty Co", names(self.client.get(reverse("client_list"), {"q": "Empty"}))[0])  # still reachable
+
+    def test_a_new_category_shows_before_it_has_units(self):
+        Category.objects.create(name_en="Ice Machines Test", name_ar="آلات الثلج")
+        self.client.force_login(self.admin)
+        cards = self.client.get(reverse("unit_list")).context["cards"]
+        self.assertEqual(next(c["stats"][0][0] for c in cards if c["category"].name_en == "Ice Machines Test"), 0)
 
     def test_equipment_opens_on_types_then_subtypes_then_units(self):
         Unit.objects.create(name_en="Loose unit", client=self.client_a, category=self.chillers, model=self.lxv)

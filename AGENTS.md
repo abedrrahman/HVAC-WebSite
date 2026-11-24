@@ -42,7 +42,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .claude\skills\restart-app\r
 
 Run this restart after every change to code, templates or static files. The page does not reload by itself.
 
-Tests (155 at the time of writing; all must pass before you say a change is done):
+Tests (156 at the time of writing; all must pass before you say a change is done):
 
 ```
 %LOCALAPPDATA%\HvacManager\venv\Scripts\python.exe manage.py test core --noinput

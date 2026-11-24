@@ -230,6 +230,8 @@ AR = {
     "Choose at least one unit.": "اختر وحدة واحدة على الأقل.", "Choose the units that should share one report form.": "اختر الوحدات التي سيكون لها نموذج تقرير واحد.",
     "Select all": "تحديد الكل", "Continue": "متابعة", "Units": "الوحدات", "No units of this type.": "لا توجد وحدات من هذا النوع.",
     "This form is saved as the own form of each unit below. Each unit keeps its own setup.": "يُحفظ هذا النموذج كنموذج خاص لكل وحدة أدناه، وتحتفظ كل وحدة بإعدادها.",
+    "Note from the foreman to the engineer": "ملاحظة رئيس العمال إلى المهندس",
+    "Only the engineer and administrators see this note. It is not printed in the PDF.": "هذه الملاحظة يراها المهندس ومدير النظام فقط، ولا تُطبع في ملف PDF.",
     "three-phase only": "ثلاثي الفاز فقط", "single-phase only": "أحادي الفاز فقط",
     "Report form": "نموذج التقرير", "Report forms": "نماذج التقارير", "Form": "النموذج", "Boxes": "الخانات", "Order": "الترتيب", "Show": "إظهار",
     "Name in English": "الاسم بالإنجليزية", "Name in Arabic": "الاسم بالعربية", "Standard": "أساسية", "New box": "خانة جديدة", "New part": "قطعة جديدة",
