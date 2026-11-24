@@ -863,6 +863,7 @@ class ReportForm(models.Model):
     rows = models.JSONField(null=True, blank=True)  # [{key, label_en, label_ar, hidden, custom}] in order; empty follows the type's form
     materials = models.JSONField(null=True, blank=True)  # [{description, unit}] the parts list starts with; empty follows the type's form
     setup = models.JSONField(default=dict, blank=True)  # one unit only: phase, compressors, circuits, fans, refrigerant, temp_unit, pressure_unit
+    limits = models.JSONField(default=dict, blank=True)  # type forms only: reading limits for every unit of the type (Settings < type < model < unit)
     web_changed_at = models.DateTimeField(null=True, blank=True)  # the last change made on the website: a report started before it cannot change the form
     source = models.CharField(max_length=10, default="web")  # who made the last change: web, or app (a finished report)
     updated_by = models.ForeignKey(User, null=True, blank=True, on_delete=models.SET_NULL, related_name="+")

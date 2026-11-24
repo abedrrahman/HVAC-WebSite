@@ -534,8 +534,13 @@ APP_VISIT_TYPES = {"Preventive": "preventive", "Corrective": "corrective", "Emer
 def limits_for(unit=None, model=None):
     """The reading limits that apply to a unit (or a model, or everything): the manuals, then Settings, the model and the unit, each replacing the one before."""
     from .phone_report import resolved_limits
+    from .report_forms import TYPE_LABELS, category_type, type_form
     model = unit.model if unit else model
     layers = [(SystemSettings.get().reading_limits, "Changed in Settings")]
+    rtype = category_type((unit or model).category.name_en) if (unit or model) else ""
+    own = type_form(rtype) if rtype in TYPE_LABELS else None
+    if own and own.limits:
+        layers.append((own.limits, f"Set for {TYPE_LABELS[rtype]}"))
     if model:
         layers.append((model.reading_limits, f"Set for model {model.model_number}"))
     if unit:

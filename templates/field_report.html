@@ -64,7 +64,7 @@
 <details class="limit-sources"><summary>{% t "Where the limits come from" %}</summary>
   <ul>{% for s in view.sources %}<li>{{ s }}</li>{% endfor %}</ul>
   <p>{% t "The manuals' limits are for a standard unit. A model or a single unit can have its own limits." %}
-    {% if fr.visit and request.user|can:"equipment.edit" %}<a href="{% url 'unit_limits' fr.visit.unit_id %}">{% t "Change the limits for this unit" %}</a>{% endif %}
+    {% if fr.visit and request.user|can:"equipment.edit" %}<a href="{% url 'unit_report_form' fr.visit.unit_id %}#limits">{% t "Change the limits for this unit" %}</a>{% endif %}
     {% if request.user|can:"settings.manage" %}· <a href="{% url 'reading_limits' %}">{% t "Reading limits" %}</a>{% endif %}</p>
 </details>
 {% endif %}

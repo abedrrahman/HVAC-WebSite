@@ -168,7 +168,12 @@ def update_from_report(unit, data, user):
     if not isinstance(form, dict):
         return ""  # an older phone app sends no form
     rtype = report_type(unit)
-    started = parse_datetime(str(data.get("created_at") or ""))
+    try:
+        started = parse_datetime(str(data.get("created_at") or ""))
+    except ValueError:  # well written but impossible, such as month 13
+        started = None
+    if started and timezone.is_naive(started):
+        started = timezone.make_aware(started)  # no time zone given: read it as the office's
     changed = last_web_change(rtype, unit)
     if changed and (not started or started <= changed):
         return "ignored: the form was changed on the website after this report started"

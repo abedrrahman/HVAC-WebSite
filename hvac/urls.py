@@ -1,4 +1,5 @@
 from django.urls import path
+from django.views.generic import RedirectView
 
 from core.views import api, catalog as c, documents as d, general as g, maintenance as m, report_forms as rf, reports as r
 
@@ -133,7 +134,7 @@ urlpatterns = [
     path("settings/activity/", g.activity, name="activity"),
     path("settings/limits/", g.reading_limits, name="reading_limits"),
     path("models/<int:pk>/limits/", g.reading_limits, {"scope": "model"}, name="model_limits"),
-    path("equipment/<int:pk>/limits/", g.reading_limits, {"scope": "unit"}, name="unit_limits"),
+    path("equipment/<int:pk>/limits/", RedirectView.as_view(pattern_name="unit_report_form"), name="unit_limits"),  # merged into the report form page
     path("settings/report-forms/", rf.report_forms, name="report_forms"),
     path("settings/report-forms/<str:rtype>/", rf.report_form_edit, name="report_form_type"),
     path("settings/report-forms/<str:rtype>/units/", rf.report_form_units, name="report_form_units"),

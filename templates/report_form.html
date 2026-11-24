@@ -10,17 +10,15 @@
 </div>
 
 <div class="note">
-  {% if multi %}{% t "This form is saved as the own form of each unit below. Each unit keeps its own setup." %}
-  {% elif unit %}{% if own %}{% t "This unit has its own form. Changes to its type's form do not reach it until you go back to the default." %}{% else %}{% t "This unit follows the form of its type. Change anything below to give it its own form." %}{% endif %}
+  {% if unit %}{% if own %}{% t "This unit has its own form. Changes to its type's form do not reach it until you go back to the default." %}{% else %}{% t "This unit follows the form of its type. Change anything below to give it its own form." %}{% endif %}
   {% else %}{% t "This form is used for every unit of this type, except units that have their own form." %}{% endif %}
   {% t "Reports already open on a phone keep their form; new reports use this one after the phone's next sync." %}
   {% t "# stands for the number of the compressor, circuit or fan." %}
 </div>
-{% if multi %}<p class="meta">{% t "Units" %} ({{ multi|length }}): {% for u in multi %}<a href="{{ u.get_absolute_url }}">{{ u.name }}</a>{% if not forloop.last %}, {% endif %}{% endfor %} · <a href="{{ request.path }}">{% t "Choose other units" %}</a></p>{% endif %}
 {% if form and form.updated_at %}<p class="meta">{% t "Last changed" %}: {{ form.updated_at|date:"j M Y H:i" }}{% if form.updated_by %} · {{ form.updated_by }}{% endif %} · {% if form.source == "app" %}{% t "from a finished phone report" %}{% else %}{% t "on the website" %}{% endif %}</p>{% endif %}
 
-<form method="post" class="report-form-editor">{% csrf_token %}
-  {% for u in multi %}<input type="hidden" name="units" value="{{ u.pk }}">{% endfor %}
+<form method="post" class="report-form-editor" novalidate>{% csrf_token %}
+  <input type="hidden" name="origin" value="{{ request.path }}">
   <input type="hidden" name="rows" value="{{ rows|length }}"><input type="hidden" name="materials" value="{{ materials|length }}">
 
   <div class="section-title">{% t "Boxes" %}</div>
@@ -54,7 +52,7 @@
     </tbody>
   </table></div></div>
 
-  {% if show_setup %}
+  {% if unit %}
   <div class="section-title">{% t "Unit setup" %}</div>
   <div class="card"><div class="setup-grid">
     <div class="field"><label for="s-phase">{% t "Power Supply (Phase)" %}</label><select id="s-phase" name="s-phase"><option value="">{% t "Phone decides" %}</option>{% for c in choices.phase %}<option{% if setup.phase == c %} selected{% endif %}>{{ c }}</option>{% endfor %}</select></div>
@@ -66,15 +64,21 @@
   </div></div>
   {% endif %}
 
-  <div class="form-actions"><button class="btn primary">{% t "Save" %}</button><a class="btn" href="{{ back }}">{% t "Cancel" %}</a></div>
+  <div class="section-title" id="limits">{% t "Reading limits" %}</div>
+  <details class="card limits-box"{% if own_limits or limits_form.errors %} open{% endif %}>
+    <summary>{% if unit %}{% t "Limits for this unit. Empty boxes follow its model, its type and Settings." %}{% else %}{% t "Limits for every unit of this type. Empty boxes follow Settings; a model or unit can still set its own." %}{% endif %}</summary>
+    {% with form=limits_form %}{% include "_fields.html" %}{% endwith %}
+  </details>
+
+  <div class="form-actions">
+    <button class="btn primary">{% if unit %}{% t "Save" %}{% else %}{% t "Save all" %}{% endif %}</button>
+    <button class="btn" name="action" value="multi" formnovalidate>{% t "Save to multiple units" %}</button>
+    <a class="btn" href="{{ back }}">{% t "Cancel" %}</a>
+  </div>
+  <p class="meta">{% if unit %}{% t "Save: this unit only." %}{% else %}{% t "Save all: every unit of this type that has no form of its own." %}{% endif %} {% t "Save to multiple units: choose the units next; each gets these boxes and parts as its own form, and the limits filled in." %}</p>
 </form>
 
-{% if changed and multi %}
-<form method="post" class="form-actions" data-confirm="{% t 'Go back to the default form? New reports will use the default; reports already open keep theirs.' %}">{% csrf_token %}
-  {% for u in multi %}<input type="hidden" name="units" value="{{ u.pk }}">{% endfor %}<input type="hidden" name="reset" value="1">
-  <button class="btn">{% t "Back to the form of its type" %}</button>
-</form>
-{% elif changed %}
+{% if changed %}
 <form method="post" action="{{ request.path }}reset/" class="form-actions" data-confirm="{% t 'Go back to the default form? New reports will use the default; reports already open keep theirs.' %}">{% csrf_token %}
   <button class="btn">{% if unit %}{% t "Back to the form of its type" %}{% else %}{% t "Back to the phone's built-in form" %}{% endif %}</button>
 </form>

@@ -333,13 +333,10 @@ def settings_view(request):
 
 
 def reading_limits(request, scope="all", pk=None):
-    """Edit the limits that mark a reading red on a maintenance report: for everything (Settings), for one model, or for one unit.
-    A unit's own limit wins over its model's, and a model's over Settings. Every change goes to the Activity Log."""
+    """Edit the limits that mark a reading red on a maintenance report: for everything (Settings) or for one model.
+    An equipment type's and a unit's own limits are set on their report form page. Every change goes to the Activity Log."""
     user = request.user
-    if scope == "unit":
-        obj = get_object_or_404(units_for(user).select_related("model"), pk=pk) if user.has("equipment.edit") else None
-        above, back, subject = limits_for(model=obj.model) if obj else {}, obj and obj.get_absolute_url(), obj and obj.name
-    elif scope == "model":
+    if scope == "model":
         obj = get_object_or_404(EquipmentModel, pk=pk) if user.has("manufacturers.edit") else None
         above, back, subject = limits_for(), obj and reverse("model_detail", args=[obj.pk]), obj and obj.model_number
     else:
@@ -386,8 +383,7 @@ def reading_limits(request, scope="all", pk=None):
                 messages.success(request, t("Saved successfully."))
             return redirect(back)
     intro = {"all": "These limits apply to every unit. A reading outside its limit is shown in red on the maintenance report. Empty both boxes to switch a limit off.",
-             "model": "Fill in only the limits that differ for this model. Empty boxes follow Settings. A single unit can still have its own.",
-             "unit": "Fill in only the limits that differ for this unit. Empty boxes follow its model, then Settings."}[scope]
+             "model": "Fill in only the limits that differ for this model. Empty boxes follow Settings. A single unit can still have its own."}[scope]
     return form_page(request, form, "Reading limits", back, submit="Save", subject=subject, intro=t(intro))
 
 

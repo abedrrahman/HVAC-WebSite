@@ -6,7 +6,7 @@
 <div class="card flush"><div class="table-wrap"><table>
   <thead><tr><th>{% t "Equipment Type" %}</th><th>{% t "Form" %}</th><th>{% t "Units with their own form" %}</th></tr></thead>
   <tbody>{% for x in types %}<tr>
-    <td><a href="{% url 'report_form_type' x.key %}">{% t x.label %}</a><div class="meta"><a href="{% url 'report_form_units' x.key %}">{% t "Change several units" %}</a></div></td>
+    <td><a href="{% url 'report_form_type' x.key %}">{% t x.label %}</a></td>
     <td>{% if x.changed %}{% badge "in_progress" "Changed on the website" %} <span class="meta">{{ x.form.updated_at|date:"j M Y" }}</span>{% else %}<span class="meta">{% t "The phone's built-in form" %}</span>{% endif %}</td>
     <td>{% for f in x.units %}<a href="{% url 'unit_report_form' f.unit_id %}">{{ f.unit.name }}</a>{% if not forloop.last %}, {% endif %}{% empty %}—{% endfor %}</td>
   </tr>{% endfor %}</tbody>

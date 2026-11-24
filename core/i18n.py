@@ -115,7 +115,6 @@ AR = {
         "هذه الحدود تطبق على كل الوحدات. القراءة الخارجة عن حدها تظهر بالأحمر في تقرير الصيانة. أفرغ الخانتين لإيقاف الحد.",
     "Fill in only the limits that differ for this model. Empty boxes follow Settings. A single unit can still have its own.":
         "املأ فقط الحدود المختلفة لهذا الموديل. الخانات الفارغة تتبع الإعدادات. ويمكن لوحدة واحدة أن يكون لها حدودها.",
-    "Fill in only the limits that differ for this unit. Empty boxes follow its model, then Settings.": "املأ فقط الحدود المختلفة لهذه الوحدة. الخانات الفارغة تتبع الموديل ثم الإعدادات.",
     "Evaporator water in": "ماء المبخر دخول", "Evaporator water out": "ماء المبخر خروج", "Evaporator water in/out difference": "فرق حرارة ماء المبخر",
     "Condenser water in": "ماء الكوندنسر دخول", "Condenser water out": "ماء الكوندنسر خروج", "Voltage, single-phase": "الفولتية (أحادي)", "Voltage, three-phase": "الفولتية (ثلاثي)",
     "Voltage imbalance": "عدم توازن الفولتية", "Compressor current": "تيار الضاغط", "Oil pressure": "ضغط الزيت", "Suction temperature": "حرارة السحب",
@@ -221,7 +220,13 @@ AR = {
     "Contracts Expiring Soon": "عقود تنتهي قريبًا",
     "Open full screen": "فتح بملء الشاشة",
     # Phone report forms
-    "Report form for several units": "نموذج التقرير لعدة وحدات", "Change several units": "تعديل عدة وحدات", "Choose other units": "اختيار وحدات أخرى",
+    "Save all": "حفظ للكل", "Save to multiple units": "حفظ لعدة وحدات", "Save to the chosen units": "حفظ للوحدات المختارة",
+    "Report form and limits": "نموذج التقرير والحدود", "Save: this unit only.": "حفظ: لهذه الوحدة فقط.",
+    "Save all: every unit of this type that has no form of its own.": "حفظ للكل: كل وحدات هذا النوع التي ليس لها نموذج خاص.",
+    "Save to multiple units: choose the units next; each gets these boxes and parts as its own form, and the limits filled in.": "حفظ لعدة وحدات: اختر الوحدات في الخطوة التالية؛ تحصل كل وحدة على هذه الخانات والقطع كنموذج خاص بها، وعلى الحدود المعبأة.",
+    "Choose the units that get this form. Each keeps its own setup; the limits filled in are added to its own limits.": "اختر الوحدات التي تحصل على هذا النموذج. تحتفظ كل وحدة بإعدادها، وتُضاف الحدود المعبأة إلى حدودها.",
+    "Limits for this unit. Empty boxes follow its model, its type and Settings.": "حدود هذه الوحدة. الخانات الفارغة تتبع موديلها ونوعها والإعدادات.",
+    "Limits for every unit of this type. Empty boxes follow Settings; a model or unit can still set its own.": "حدود كل وحدات هذا النوع. الخانات الفارغة تتبع الإعدادات، ويمكن للموديل أو الوحدة وضع حدود خاصة.",
     "Choose at least one unit.": "اختر وحدة واحدة على الأقل.", "Choose the units that should share one report form.": "اختر الوحدات التي سيكون لها نموذج تقرير واحد.",
     "Select all": "تحديد الكل", "Continue": "متابعة", "Units": "الوحدات", "No units of this type.": "لا توجد وحدات من هذا النوع.",
     "This form is saved as the own form of each unit below. Each unit keeps its own setup.": "يُحفظ هذا النموذج كنموذج خاص لكل وحدة أدناه، وتحتفظ كل وحدة بإعدادها.",

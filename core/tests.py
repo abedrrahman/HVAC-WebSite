@@ -612,23 +612,42 @@ class PhoneApp(Base):
         own.refresh_from_db()
         self.assertEqual((own.rows[-1]["label_en"], own.setup, own.source), ("Fan belt", {"refrigerant": "R-410A", "compressors": 3}, "app"))
 
-    def test_one_report_form_is_saved_for_several_units_of_a_type(self):
+    def test_save_all_and_save_to_multiple_units_with_limits(self):
         from .models import ReportForm
-        self.client.force_login(self.engineer)
-        url = reverse("report_form_units", args=["chiller"])
-        picks = self.client.get(url).context["groups"]
-        self.assertEqual({u.pk for us in picks.values() for u in us} >= {self.c1.pk, self.c2.pk}, True)
-        self.assertNotIn(self.a1.pk, {u.pk for us in picks.values() for u in us})  # an AHU is not offered on the chiller list
-        page = self.client.get(url, {"units": [self.c1.pk, self.c2.pk, self.a1.pk]}).context
-        self.assertEqual([u.pk for u in page["multi"]], [self.c1.pk, self.c2.pk])
-        post = {"units": [self.c1.pk, self.c2.pk], "rows": len(page["rows"]), "materials": 0, "n0-en": "Belt tension"}
+        from .services import limits_for
+        self.client.force_login(self.admin)
+        url = reverse("report_form_type", args=["chiller"])
+        page = self.client.get(url).context
+        post = {"rows": len(page["rows"]), "materials": 0, "origin": url}
         for i, r in enumerate(page["rows"]):
             post.update({f"r{i}-key": r["key"], f"r{i}-custom": "0", f"r{i}-pos": i + 1, f"r{i}-en": r["label_en"], f"r{i}-ar": r["label_ar"], f"r{i}-show": "on"})
-        self.client.post(url, post)
-        forms = {f.unit_id: f for f in ReportForm.objects.filter(unit__in=[self.c1, self.c2])}
-        self.assertEqual([forms[u].rows[-1]["label_en"] for u in (self.c1.pk, self.c2.pk)], ["Belt tension", "Belt tension"])
-        self.client.post(url, {"units": [self.c1.pk, self.c2.pk], "reset": "1"})
-        self.assertFalse(ReportForm.objects.filter(unit__in=[self.c1, self.c2], rows__isnull=False).exists())  # both follow the chiller form again
+        post.update({"r0-en": "", "r0-ar": ""})  # a standard box emptied by mistake keeps the app's name
+        self.client.post(url, {**post, "lim-amps_high": "70"})  # Save all: the type's limits reach every chiller without its own
+        self.assertIsNone(ReportForm.objects.get(report_type="chiller", unit__isnull=True).rows)  # the emptied name came back, so no box changed
+        self.assertEqual(limits_for(unit=self.c2)["amps"], (None, 70.0, "Set for Chillers"))
+        self.assertEqual(limits_for(unit=self.a1)["amps"][1], None)  # an AHU is another type
+
+        # Save to multiple units: the edited form rides along to the unit choice, then goes to the chosen units only.
+        Unit.objects.filter(pk=self.c2.pk).update(reading_limits={"oil_pressure": [1.0, 5.0]})
+        pick = self.client.post(url, {**post, "action": "multi", "n0-en": "Belt tension", "lim-amps_high": "40"})
+        carried = dict(pick.context["carried"])
+        self.assertEqual((carried["n0-en"], carried["lim-amps_high"]), ("Belt tension", "40"))
+        self.assertNotIn(self.a1.pk, {u.pk for us in pick.context["groups"].values() for u in us})
+        done = self.client.post(reverse("report_form_units", args=["chiller"]), {**carried, "units": [self.c1.pk, self.c2.pk, self.a1.pk], "origin": url})
+        self.assertRedirects(done, url, fetch_redirect_response=False)
+        forms = {x.unit_id: x for x in ReportForm.objects.filter(unit__isnull=False)}
+        self.assertEqual(sorted(forms), [self.c1.pk, self.c2.pk])
+        self.assertEqual(forms[self.c1.pk].rows[-1]["label_en"], "Belt tension")
+        self.c2.refresh_from_db()
+        self.assertEqual(self.c2.reading_limits, {"oil_pressure": [1.0, 5.0], "amps": [None, 40.0]})  # added to its own; nothing it had is removed
+
+    def test_an_odd_report_start_date_never_blocks_the_upload(self):
+        from .models import ReportForm
+        ReportForm.objects.create(report_type="chiller", rows=None, web_changed_at=timezone.now())
+        Visit.objects.create(unit=self.c1, client=self.client_a, scheduled_date=self.today, technician=self.tech)
+        for rid, started in (("r-d1", "2026-11-22 10:00"), ("r-d2", "2026-13-45T00:00:00")):
+            r = self.client.post(reverse("api_report"), {"report": json.dumps({"id": rid, "unit_id": self.c1.pk, "created_at": started, "form": {"rows": []}})}, **self.token("tech"))
+            self.assertIn(r.status_code, (200, 201))
 
     def test_report_for_a_unit_out_of_scope_waits_and_touches_nothing(self):
         Visit.objects.create(unit=self.c1, client=self.client_a, scheduled_date=self.today, technician=self.tech)
@@ -836,14 +855,14 @@ class PhoneApp(Base):
         self.assertEqual((every["evap_water_out_low"], every["evap_water_out_high"], every["amps_high"]), (5, 20, ""))  # the manuals' values, ready to change
         self.client.post(reverse("reading_limits"), {**every, "evap_water_out_low": "4"})
         self.client.post(reverse("model_limits", args=[self.c1.model_id]), {"evap_water_out_low": "-5", "evap_water_out_high": "15", "amps_high": "60"})
-        self.client.post(reverse("unit_limits", args=[self.c1.pk]), {"amps_high": "45"})
+        self.client.post(reverse("unit_report_form", args=[self.c1.pk]), {"lim-amps_high": "45"})  # a unit's limits live on its report form page
         got = lambda unit: {k: v[:2] for k, v in limits_for(unit=Unit.objects.get(pk=unit.pk)).items() if k in ("evap_water_out", "amps", "cond_water_in")}
         self.assertEqual(got(self.c1), {"evap_water_out": (-5, 15), "amps": (None, 45), "cond_water_in": (20, 45)})  # unit over model over Settings over manuals
         self.assertEqual(got(self.b1)["evap_water_out"], (4, 20))
         self.assertEqual(SystemSettings.get().reading_limits, {"evap_water_out": [4.0, 20.0]})  # only what differs from the manuals is kept
         self.assertEqual(list(ActivityLog.objects.filter(action="limits_changed").order_by("pk").values_list("details", flat=True)),
                          ["Evaporator water out: as in the manuals → 4–20 °C", "Evaporator water out: as above → -5–15 °C\nCompressor current: as above → max 60 A",
-                          "Compressor current: as above → max 45 A"])
+                          "Chillers\nCompressor current: as above → max 45 A"])
         report = {"id": "r-8", "unit_id": self.c1.pk, "checklist_items": [{"field_key": "evap_water_out", "label_en": "Out", "value": "-2"},
                                                                          {"field_key": "compressor_1_amps", "label_en": "Amps", "value": "50"}]}
         self.client.post(reverse("api_report"), {"report": json.dumps(report)}, **self.token("eng"))
@@ -851,7 +870,7 @@ class PhoneApp(Base):
         view = self.client.get(reverse("maintenance_report_view", args=[FieldReport.objects.get(app_report_id="r-8").pk])).context["view"]
         self.assertEqual([(r["bad"], r["limit"], r["source"]) for g in view["groups"] for r in g["readings"]],
                          [(False, "-5–15 °C", f"Set for model {self.c1.model.model_number}"), (True, "max 45 A", "Set for this unit")])
-        bad = self.client.post(reverse("unit_limits", args=[self.c1.pk]), {"oil_pressure_low": "9", "oil_pressure_high": "2"})
+        bad = self.client.post(reverse("unit_report_form", args=[self.c1.pk]), {"lim-oil_pressure_low": "9", "lim-oil_pressure_high": "2"})
         self.assertContains(bad, "The minimum is higher than the maximum.")
 
     def test_a_unit_is_shown_only_beside_a_number(self):

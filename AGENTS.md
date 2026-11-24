@@ -42,7 +42,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .claude\skills\restart-app\r
 
 Run this restart after every change to code, templates or static files. The page does not reload by itself.
 
-Tests (154 at the time of writing; all must pass before you say a change is done):
+Tests (155 at the time of writing; all must pass before you say a change is done):
 
 ```
 %LOCALAPPDATA%\HvacManager\venv\Scripts\python.exe manage.py test core --noinput
@@ -102,7 +102,7 @@ The contract is in `APP_SYNC.md`. Keep it up to date when you change an endpoint
 ## 7. Reading limits and superheat
 
 - `core/phone_report.py` holds the starting limits, each with the manual and page it came from. Do not invent a limit: if the manuals give no number, leave it empty.
-- Limits are stored in °C, bar gauge, V, A, K and %. Settings, a model and a unit can each replace a limit; the unit wins over the model, the model over Settings (`limits_for` in `services.py`).
+- Limits are stored in °C, bar gauge, V, A, K and %. Settings, an equipment type, a model and a unit can each replace a limit; the unit wins over the model, the model over the type, the type over Settings (`limits_for` in `services.py`). A type's and a unit's limits are edited on their report form page (`core/views/report_forms.py`); Settings and model limits on the Reading limits page.
 - Superheat is the suction temperature minus the saturation temperature at the suction pressure. The pressure tables were computed with CoolProp for R410A, R32, R134a, R22, R407C and R404A. Pressures are treated as gauge readings.
 - Numbers shown inside CSS or meant as measurements must be formatted as text in Python. The Arabic page writes decimals with a comma and has broken CSS that way before.
 

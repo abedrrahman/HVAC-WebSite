@@ -590,3 +590,5 @@ html[dir="rtl"] .bar .fill { transform-origin: 100% 50%; }
 .inline-check { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-size: 13px; }
 .setup-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0 16px; }
 .unit-picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 2px 16px; }
+.limits-box > summary { cursor: pointer; color: var(--ink-2); font-weight: 500; }
+.limits-box[open] > summary { margin-bottom: 14px; }

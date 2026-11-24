@@ -2,9 +2,11 @@
 {% block title %}{{ title }}{% endblock %}
 {% block content %}
 <div class="page-head"><div><h1>{{ title }}</h1><div class="sub">{{ subject }}</div></div>
-  <div class="actions"><a class="btn" href="{{ back }}">{% t "Back" %}</a></div></div>
-<div class="note">{% t "Choose the units that should share one report form." %}</div>
-<form method="get">
+  <div class="actions"><a class="btn" href="{{ origin }}">{% t "Back" %}</a></div></div>
+<div class="note">{% t "Choose the units that get this form. Each keeps its own setup; the limits filled in are added to its own limits." %}</div>
+<form method="post" action="{{ action }}">{% csrf_token %}
+  {% for name, value in carried %}<input type="hidden" name="{{ name }}" value="{{ value }}">{% endfor %}
+  <input type="hidden" name="origin" value="{{ origin }}">
   <div class="form-actions">
     <button type="button" class="btn small" data-check-all="on">{% t "Select all" %}</button>
     <button type="button" class="btn small" data-check-all="off">{% t "Clear Selection" %}</button>
@@ -13,6 +15,6 @@
   <div class="section-title">{{ client }} ({{ units|length }})</div>
   <div class="card check-list unit-picks">{% for u in units %}<label><input type="checkbox" name="units" value="{{ u.pk }}"> {{ u.name }}</label>{% endfor %}</div>
   {% empty %}<div class="empty">{% t "No units of this type." %}</div>{% endfor %}
-  {% if groups %}<div class="form-actions"><button class="btn primary">{% t "Continue" %}</button></div>{% endif %}
+  {% if groups %}<div class="form-actions"><button class="btn primary">{% t "Save to the chosen units" %}</button></div>{% endif %}
 </form>
 {% endblock %}
