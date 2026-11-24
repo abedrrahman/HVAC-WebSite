@@ -34,8 +34,15 @@ Answer (JSON): `synced_at`, `clients`, `units`, `documents`, `visits`.
   - `materials`: `[{ description, unit }]` the parts list starts with, or `null`.
   - `setup` (units only): any of `phase` (`1Ph`/`3Ph`), `compressors`, `circuits`, `supply_fans`, `extract_fans`, `return_fans` (numbers),
     `refrigerant`, `temp_unit` (`C`/`F`/`K`), `pressure_unit` (`bar`/`psi`/`kPa`/`MPa`). A missing key is left to the phone.
-  - `changed_at`: when the form last changed. A new report uses the newest of the website's form and the unit's own form on the phone.
+  - `changed_at`: when the form last changed. A new report uses the newest of the website's form and the unit's own form on the phone
+    (compare with `machine_templates.updated_at`, which every unit has, also those whose last report is older than this feature).
     A report already open keeps its boxes.
+  - "Back to default" on the website does **not** remove the entry: it is sent with `rows: null` and `materials: null` and a newer `changed_at`.
+    For a type: new reports use the app's built-in form, also over an older form the phone kept for the unit. For a unit: new reports use its type's form.
+    A type appears in `types` only after its form was changed on the website; reading limits set for a type are not a form change and are not sent.
+  - `setup.phase` is always `1Ph` or `3Ph`; counts are whole numbers. On upload the website keeps only these exact values.
+  - Keys of boxes added on the phone: `custom_` plus the box's own id, the same every time the report is sent (at most 60 characters).
+    Keep the key of a box the website added when sending the form back.
 - The list of standard boxes per type is copied from the app into `core/report_form_catalog.json` by `node tools/export_form_catalog.mjs <app folder>`.
   Run it again whenever the app's built-in forms change.
 - A user without "See all records" gets only the units of visits assigned to them.

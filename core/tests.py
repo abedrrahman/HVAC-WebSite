@@ -626,6 +626,7 @@ class PhoneApp(Base):
         self.assertIsNone(ReportForm.objects.get(report_type="chiller", unit__isnull=True).rows)  # the emptied name came back, so no box changed
         self.assertEqual(limits_for(unit=self.c2)["amps"], (None, 70.0, "Set for Chillers"))
         self.assertEqual(limits_for(unit=self.a1)["amps"][1], None)  # an AHU is another type
+        self.assertNotIn("chiller", self.client.get(reverse("api_sync"), **self.token("eng")).json()["report_forms"]["types"])  # limits alone are not a form change for the phone
 
         # Save to multiple units: the edited form rides along to the unit choice, then goes to the chosen units only.
         Unit.objects.filter(pk=self.c2.pk).update(reading_limits={"oil_pressure": [1.0, 5.0]})

@@ -145,11 +145,13 @@ def same_rows(a, b):
 
 
 def sync_payload(units):
-    """What the phone needs: every changed type form, and the forms of the units it receives."""
+    """What the phone needs: every type form changed on the website, and the forms of the units it receives.
+    A type form is sent from its first change on the website, also after "Back to default" (rows and materials null, a newer changed_at):
+    that is how the phone learns the form went back. A type with only limits set on the website is not a form change and is not sent."""
     from .models import ReportForm
-    stamp = lambda f: (f.web_changed_at or f.updated_at).isoformat()
+    stamp = lambda f: (f.web_changed_at or f.updated_at).isoformat()  # a unit form a finished report made has no website change: its save time
     types = {f.report_type: {"rows": with_new_rows(f.report_type, f.rows) if f.rows is not None else None, "materials": f.materials, "changed_at": stamp(f)}
-             for f in ReportForm.objects.filter(unit__isnull=True)}
+             for f in ReportForm.objects.filter(unit__isnull=True, web_changed_at__isnull=False)}
     by_id = {u.pk: u for u in units}
     forms = {}
     for f in ReportForm.objects.filter(unit_id__in=by_id):
