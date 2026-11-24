@@ -467,6 +467,7 @@ class Contract(models.Model):
     description = models.TextField("Contract Description", blank=True)
     notes = models.TextField("Additional Notes", blank=True)
     renewed_from = models.ForeignKey("self", null=True, blank=True, on_delete=models.SET_NULL, related_name="renewals")
+    emergency_visits = models.PositiveIntegerField("Emergency visits included", null=True, blank=True)  # empty = no limit
     created_at = models.DateTimeField(auto_now_add=True)
 
     objects = ContractQuerySet.as_manager()
@@ -508,6 +509,32 @@ class Contract(models.Model):
     @property
     def active_units(self):
         return Unit.objects.filter(contract_links__contract=self, contract_links__removed_at__isnull=True)
+
+    def emergency_visits_used(self):
+        """Phone reports make visits with no contract, so those count too when the unit was covered and the date falls in the contract."""
+        mine = Q(contract=self) | Q(contract__isnull=True, unit__contract_links__contract=self, scheduled_date__range=(self.start_date, self.end_date))
+        return Visit.objects.filter(mine, visit_type=Visit.Type.EMERGENCY).exclude(status="cancelled").distinct()
+
+    @property
+    def emergency_left(self):
+        return None if self.emergency_visits is None else self.emergency_visits - self.emergency_visits_used().count()
+
+
+class ContractPayment(models.Model):
+    contract = models.ForeignKey(Contract, on_delete=models.CASCADE, related_name="payments")
+    due_date = models.DateField("Due date")
+    amount = models.DecimalField("Amount", max_digits=14, decimal_places=2)
+    paid_on = models.DateField("Paid on", null=True, blank=True)
+    notes = models.CharField("Notes", max_length=200, blank=True)
+
+    class Meta:
+        ordering = ["due_date", "pk"]
+
+    @property
+    def state(self):
+        if self.paid_on:
+            return "completed"
+        return "overdue" if self.due_date < timezone.localdate() else "scheduled"
 
 
 class ContractEquipment(models.Model):
@@ -797,6 +824,7 @@ class Notification(models.Model):
         VISIT = "visit", "Maintenance Visit Reminder"
         CONTRACT = "contract", "Contract Expiration Reminder"
         REPORT = "report", "Maintenance report from the phone"
+        PAYMENT = "payment", "Contract payment reminder"
 
     user = models.ForeignKey(User, on_delete=models.CASCADE, related_name="notifications")
     kind = models.CharField(max_length=20, choices=Kind.choices)

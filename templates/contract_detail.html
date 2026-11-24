@@ -14,11 +14,14 @@
   </div>
   {% endif %}
 </div>
+{% if c.emergency_visits is not None and c.emergency_left <= 0 %}<div class="alert warning" role="status">{% t "All emergency visits in this contract are used:" %} {{ emergency_used }} / {{ c.emergency_visits }}</div>{% endif %}
 <nav class="tabs">
   <a href="#info">{% t "Contract Information" %}</a>
   <a href="#equipment">{% t "Covered Equipment" %} ({{ unit_rows|length }})</a>
   {% if request.user|can:"schedules.view" %}<a href="#schedules">{% t "Maintenance Schedules" %}</a>{% endif %}
-  {% if request.user|can:"visits.view" %}<a href="#visits">{% t "Maintenance Visits" %}</a>{% endif %}
+  {% if request.user|can:"visits.view" %}<a href="#visits">{% t "Scheduled visits" %}</a>
+  <a href="#emergency">{% t "Emergency visits" %} ({{ emergency_used }}{% if c.emergency_visits is not None %} / {{ c.emergency_visits }}{% endif %})</a>{% endif %}
+  <a href="#payments">{% t "Payments" %}</a>
   <a href="#files">{% t "Contract Documents" %}</a>
 </nav>
 <section id="info" class="tab-panel card">
@@ -28,6 +31,7 @@
     <div><dt>{% t "Contract End Date" %}</dt><dd>{{ c.end_date|longdate }}</dd></div>
     <div><dt>{% t "Contract Duration" %}</dt><dd>{{ duration }} {% t "Months" %}</dd></div>
     <div><dt>{% t "Contract Value" %}</dt><dd>{% if c.value is not None %}{{ c.value }} {{ c.currency }}{% else %}—{% endif %}</dd></div>
+    <div><dt>{% t "Emergency visits included" %}</dt><dd>{% if c.emergency_visits is None %}{% t "No limit" %}{% else %}{{ c.emergency_visits }} ({% t "Left" %}: {{ c.emergency_left }}){% endif %}</dd></div>
     <div><dt>{% t "Contract Status" %}</dt><dd>{% badge c.display_status c.status_label %}</dd></div>
     {% if c.renewed_from %}<div><dt>{% t "Renewal of" %}</dt><dd><a href="{{ c.renewed_from.get_absolute_url }}">{{ c.renewed_from.number }}</a></dd></div>{% endif %}
     {% for r in renewals %}<div><dt>{% t "Renewed as" %}</dt><dd><a href="{{ r.get_absolute_url }}">{{ r.number }}</a></dd></div>{% endfor %}
@@ -70,7 +74,29 @@
 {% endif %}
 {% if request.user|can:"visits.view" %}
 <section id="visits" class="tab-panel card flush">{% include "_visits_table.html" with visits=visits %}</section>
+<section id="emergency" class="tab-panel card flush">
+  <div class="note" style="margin:12px 16px 0">{% t "Emergency visits included" %}: {% if c.emergency_visits is None %}{% t "No limit" %}{% else %}{{ c.emergency_visits }} · {% t "Used" %}: {{ emergency_used }} · {% t "Left" %}: {{ c.emergency_left }}{% endif %}</div>
+  {% include "_visits_table.html" with visits=emergency %}
+</section>
 {% endif %}
+<section id="payments" class="tab-panel card flush">
+  {% if request.user|can:"contracts.edit" %}<div class="actions" style="padding:12px 16px 0"><a class="btn small primary" href="{% url 'contract_payments' c.pk %}">{% icon "plus" 14 %} {% t "Add payments" %}</a></div>{% endif %}
+  <div class="table-wrap"><table>
+    <thead><tr><th>{% t "Due date" %}</th><th>{% t "Amount" %}</th><th>{% t "Status" %}</th><th>{% t "Paid on" %}</th><th>{% t "Notes" %}</th><th></th></tr></thead>
+    <tbody>
+    {% for p in payments %}
+    <tr><td>{{ p.due_date|longdate }}</td><td>{{ p.amount }} {{ c.currency }}</td>
+      <td>{% if p.state == "completed" %}{% badge "completed" "Paid" %}{% elif p.state == "overdue" %}{% badge "overdue" "Overdue" %}{% else %}{% badge "scheduled" "Not paid yet" %}{% endif %}</td>
+      <td>{{ p.paid_on|longdate|default:"—" }}</td><td>{{ p.notes|default:"—" }}</td>
+      <td>{% if request.user|can:"contracts.edit" %}<div class="actions">
+        {% if p.paid_on %}<form method="post" action="{% url 'payment_action' p.pk 'unpaid' %}">{% csrf_token %}<button class="btn small">{% t "Mark as not paid" %}</button></form>
+        {% else %}<form method="post" action="{% url 'payment_action' p.pk 'paid' %}">{% csrf_token %}<button class="btn small primary">{% t "Mark as paid" %}</button></form>{% endif %}
+        <form method="post" action="{% url 'payment_action' p.pk 'delete' %}" data-confirm="{% t 'Delete this payment?' %}">{% csrf_token %}<button class="btn small danger">{% t "Delete" %}</button></form>
+      </div>{% endif %}</td></tr>
+    {% empty %}<tr><td colspan="6"><div class="empty">{% t "No records found." %}</div></td></tr>{% endfor %}
+    </tbody>
+  </table></div>
+</section>
 <section id="files" class="tab-panel card">
   <ul class="mini-list">{% for a in attachments %}<li><a href="{% url 'attachment_file' a.pk %}?download=1">{{ a.original_name }}</a><span class="meta">{{ a.size|filesize }} · {{ a.uploaded_at|longdate }}</span></li>{% empty %}<li class="empty">{% t "No records found." %}</li>{% endfor %}</ul>
   {% if request.user|can:"contracts.edit" %}

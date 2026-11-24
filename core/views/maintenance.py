@@ -22,9 +22,9 @@ from .. import forms as f
 from ..i18n import t
 from ..phone_report import report_view
 from ..report_pdf import build_report_pdf
-from ..models import (ActivityLog, Attachment, Category, Client, Contract, Country, FieldReport, Schedule, SystemSettings, Unit, User, Visit, VisitReport, add_months)
+from ..models import (ActivityLog, Attachment, Category, Client, Contract, ContractPayment, Country, FieldReport, Schedule, SystemSettings, Unit, User, Visit, VisitReport, add_months)
 from ..services import (can_edit_report, reviews_reports, close_open_contract_visits, dispatch_visits, technicians, contracts_for, copy_for_renewal, field_reports_for, follow_schedule_people, limits_for, new_attachment,
-                        notify_report, record, report_texts, set_contract_units,
+                        notify_emergency_used, notify_report, record, report_texts, set_contract_units,
                         sync_contract_visits, unit_conflicts, visit_from_report, visits_for)
 from .common import action, badge, fmt, form_page, link, list_page, post_only, requires, saved
 
@@ -90,9 +90,12 @@ def contract_detail(request, pk):
         s = individual.get(x.pk)
         covered = general and (general.include_new_units or general.covered_units.filter(pk=x.pk).exists())
         rows.append({"unit": x, "schedule": s or (general if covered else None), "next": open_visits.get(x.pk)})
+    emergency = c.emergency_visits_used()
     return render(request, "contract_detail.html", {
         "c": c, "unit_rows": rows, "schedules": schedules, "removed": c.equipment_links.filter(removed_at__isnull=False).select_related("unit"),
-        "visits": visits_for(u).filter(contract=c).select_related("unit", "technician").order_by("-scheduled_date")[:50] if u.has("visits.view") else [],
+        "visits": visits_for(u).filter(contract=c).exclude(visit_type=Visit.Type.EMERGENCY).select_related("unit", "technician").order_by("-scheduled_date")[:50] if u.has("visits.view") else [],
+        "emergency": visits_for(u).filter(pk__in=emergency.values("pk")).select_related("unit", "technician", "contract").order_by("-scheduled_date") if u.has("visits.view") else [],
+        "emergency_used": emergency.count(), "payments": c.payments.all(),
         "attachment_form": f.AttachmentForm(kinds=[Attachment.Kind.CONTRACT]), "attachments": c.attachments.all(), "duration": c.duration_months,
         "renewals": c.renewals.all(),
     })
@@ -172,12 +175,53 @@ def contract_action(request, pk, verb):
     return redirect(c)
 
 
+class PaymentForm(f.BaseForm):
+    sections = (("Payment schedule", ["due_date", "amount", "count", "every", "notes"]),)
+    due_date = forms.DateField(label="First payment date")
+    amount = forms.DecimalField(label="Amount of each payment", max_digits=14, decimal_places=2, min_value=0)
+    count = forms.IntegerField(label="Number of payments", min_value=1, max_value=120, initial=1)
+    every = forms.IntegerField(label="Every (months)", min_value=1, max_value=24, initial=1)
+    notes = forms.CharField(label="Notes", max_length=200, required=False)
+
+
+@requires("contracts.edit")
+def contract_payments(request, pk):
+    """One payment, or a series of equal payments a number of months apart."""
+    c = _contract_or_404(request, pk)
+    form = PaymentForm(request.POST or None, initial={"due_date": c.start_date, "count": 1, "every": 1})
+    if request.method == "POST" and form.is_valid():
+        d = form.cleaned_data
+        rows = [ContractPayment(contract=c, due_date=add_months(d["due_date"], i * d["every"]), amount=d["amount"], notes=d["notes"]) for i in range(d["count"])]
+        ContractPayment.objects.bulk_create(rows)
+        saved(request, c, "payments_added", f"{len(rows)} x {d['amount']} {c.currency} from {d['due_date']}")
+        return redirect(c.get_absolute_url() + "#payments")
+    return form_page(request, form, "Add payments", c.get_absolute_url() + "#payments", subject=f"{c.number} · {c.client}")
+
+
+@post_only
+@requires("contracts.edit")
+def payment_action(request, pk, verb):
+    p = get_object_or_404(ContractPayment, pk=pk, contract__in=contracts_for(request.user))
+    if verb == "paid" and not p.paid_on:
+        p.paid_on = timezone.localdate()
+        p.save(update_fields=["paid_on"])
+    elif verb == "unpaid" and p.paid_on:
+        p.paid_on = None
+        p.save(update_fields=["paid_on"])
+    elif verb == "delete":
+        p.delete()
+    else:
+        return redirect(p.contract.get_absolute_url() + "#payments")
+    saved(request, p.contract, f"payment_{verb}", f"{p.due_date} {p.amount} {p.contract.currency}")
+    return redirect(p.contract.get_absolute_url() + "#payments")
+
+
 @requires("contracts.edit")
 def contract_renew(request, pk):
     old = _contract_or_404(request, pk)
     start = old.end_date + timedelta(days=1)
     initial = {"number": f"{old.number}-R", "title": old.title, "client": old.client_id, "start_date": start, "end_date": add_months(start, max(old.duration_months, 1)) - timedelta(days=1),
-               "value": old.value, "currency": old.currency, "description": old.description}
+               "value": old.value, "currency": old.currency, "emergency_visits": old.emergency_visits, "description": old.description}
     form = f.ContractForm(request.POST or None, initial=initial)
     form.fields["client"].disabled = True
     if request.method == "POST" and form.is_valid():
@@ -334,6 +378,8 @@ def visit_edit(request, pk=None):
     if request.method == "POST" and form.is_valid():
         v = form.save()
         saved(request, v, "updated" if pk else "created")
+        if v.visit_type == Visit.Type.EMERGENCY and v.contract and notify_emergency_used(v.contract):
+            messages.warning(request, t("All emergency visits in this contract are used:") + f" {v.contract.number} ({v.contract.emergency_visits_used().count()} / {v.contract.emergency_visits})")
         return redirect(v)
     return form_page(request, form, "Edit Visit" if pk else "Add Visit", obj.get_absolute_url() if obj else reverse("visit_list"))
 

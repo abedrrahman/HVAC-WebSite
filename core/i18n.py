@@ -256,4 +256,10 @@ AR = {
     "Chillers": "المبردات (تشيلر)", "Air Handling Units (AHU)": "وحدات مناولة الهواء (AHU)", "Fan Coil Units (FCU)": "وحدات ملف المروحة (FCU)",
     "Split Units": "وحدات سبليت", "VRF / VRV Systems": "أنظمة VRF / VRV", "Rooftop Units": "وحدات السطح (Rooftop)",
     "Close Control Units (CCU)": "وحدات التحكم الدقيق (CCU)", "Dehumidifiers": "مزيلات الرطوبة", "Cooling Towers": "أبراج التبريد", "Boilers": "الغلايات",
+    "Scheduled visits": "الزيارات المجدولة", "Emergency visits": "زيارات الطوارئ", "Emergency visits included": "زيارات الطوارئ المشمولة",
+    "No limit": "بلا حد", "Used": "المستخدم", "Left": "المتبقي", "All emergency visits in this contract are used:": "تم استخدام جميع زيارات الطوارئ في هذا العقد:",
+    "Payments": "الدفعات", "Add payments": "إضافة دفعات", "Payment schedule": "جدول الدفعات", "Due date": "تاريخ الاستحقاق", "Amount": "المبلغ",
+    "Paid on": "تاريخ الدفع", "Paid": "مدفوعة", "Not paid yet": "غير مدفوعة بعد", "Mark as paid": "تسجيل كمدفوعة", "Mark as not paid": "إلغاء الدفع",
+    "Delete this payment?": "حذف هذه الدفعة؟", "First payment date": "تاريخ أول دفعة", "Amount of each payment": "مبلغ كل دفعة",
+    "Number of payments": "عدد الدفعات", "Every (months)": "كل (أشهر)", "Contract payment reminder": "تذكير بدفعة عقد",
 }

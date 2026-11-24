@@ -1309,6 +1309,37 @@ class Reminders(Base):
         self.assertEqual(n.message_en, "Attention: Maintenance Contract MC-2026-001 for Hikma will expire in 30 days. Please review and initiate the renewal process.")
         self.assertEqual(run_reminders(date(2026, 12, 1)), 0)
 
+    def test_emergency_limit_and_payment_reminders_reach_the_engineer(self):
+        from .models import ContractEquipment, ContractPayment
+        c = Contract.objects.create(number="MC-EM", title="T", client=self.client_a, start_date=date(2026, 1, 1), end_date=date(2028, 12, 31), status="active", emergency_visits=1)
+        ContractEquipment.objects.create(contract=c, unit=self.c1)
+        Visit.objects.create(unit=self.c1, client=self.client_a, scheduled_date=date(2026, 3, 1), visit_type="emergency", status="cancelled")
+        run_reminders(date(2027, 6, 1))
+        self.assertFalse(Notification.objects.filter(dedupe_key__startswith="emergency:").exists())  # a cancelled one does not count
+        # A phone report's visit has no contract, yet counts because the unit was covered on that date.
+        Visit.objects.create(unit=self.c1, client=self.client_a, scheduled_date=date(2026, 4, 1), actual_date=date(2026, 4, 1), visit_type="emergency", status="completed")
+        self.assertEqual(c.emergency_left, 0)
+        run_reminders(date(2027, 6, 1))
+        self.assertIn("All emergency visits in contract MC-EM", Notification.objects.get(user=self.engineer, dedupe_key__startswith="emergency:").message_en)
+        self.assertEqual(run_reminders(date(2027, 6, 1)), 0)
+
+        p = ContractPayment.objects.create(contract=c, due_date=date(2027, 7, 10), amount=500)
+        self.assertEqual(run_reminders(date(2027, 7, 2)), 0)  # 8 days before: nothing
+        run_reminders(date(2027, 7, 3))
+        self.assertIn("in 7 days: 500.00 JOD for contract MC-EM", Notification.objects.get(user=self.engineer, kind="payment").message_en)
+        run_reminders(date(2027, 7, 11))
+        self.assertTrue(Notification.objects.filter(user=self.engineer, kind="payment", message_en__startswith="Payment overdue").exists())
+        ContractPayment.objects.filter(pk=p.pk).update(paid_on=date(2027, 7, 12), due_date=date(2027, 7, 20))
+        self.assertEqual(run_reminders(date(2027, 7, 15)), 0)  # paid: no more reminders
+        self.assertFalse(Notification.objects.filter(user=self.tech, kind="payment").exists())
+
+        self.client.force_login(self.engineer)
+        self.client.post(reverse("contract_payments", args=[c.pk]), {"due_date": "2027-01-31", "amount": "100", "count": "3", "every": "1"})
+        self.assertEqual(list(c.payments.filter(amount=100).values_list("due_date", flat=True)), [date(2027, 1, 31), date(2027, 2, 28), date(2027, 3, 31)])
+        page = self.client.get(c.get_absolute_url()).content.decode()
+        self.assertIn("All emergency visits in this contract are used: 1 / 1", page)
+        self.assertIn("Mark as paid", page)
+
     def test_settings_are_respected(self):
         from .models import SystemSettings
         SystemSettings.objects.update(visit_reminder_days=3)

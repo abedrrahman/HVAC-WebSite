@@ -14,10 +14,11 @@ from django.utils import timezone, translation
 from django.utils.formats import date_format
 
 from .i18n import t
-from .models import (ActivityLog, AlarmCode, Attachment, Client, alarm_key, Contract, ContractEquipment, Document, DocumentAssignment,
+from .models import (ActivityLog, AlarmCode, Attachment, Client, alarm_key, Contract, ContractEquipment, ContractPayment, Document, DocumentAssignment,
                      FieldDefinition, FieldReport, Notification, Schedule, SystemSettings, TechnicalValue, Unit, User, Visit, VisitReport, add_months)
 
 log = logging.getLogger(__name__)
+PAYMENT_REMINDER_DAYS = 7  # how many days before a contract payment the engineers are told
 
 
 def record(user, action, obj, details=""):
@@ -404,6 +405,36 @@ def _users_with(code):
     return [u for u in User.objects.filter(is_active=True).select_related("role") if u.has(code)]
 
 
+def notify_emergency_used(c):
+    """Tells the contract watchers once per limit that every emergency visit is used. Returns True when none are left."""
+    left = c.emergency_left
+    if left is None or left > 0:
+        return False
+    with translation.override("ar"):
+        client_ar = c.client.name
+    used = c.emergency_visits - left
+    en = f"All emergency visits in contract {c.number} for {c.client.name_en} are used ({used} of {c.emergency_visits})."
+    ar = f"تم استخدام جميع زيارات الطوارئ في العقد {c.number} الخاص بـ {client_ar} ({used} من {c.emergency_visits})."
+    # The limit is in the key, so raising it in the contract alerts again when the new limit is reached.
+    Notification.objects.bulk_create([Notification(user=u, kind="contract", dedupe_key=f"emergency:{c.pk}:{c.emergency_visits}", message_en=en, message_ar=ar, contract=c)
+                                      for u in _users_with("notifications.contracts")], ignore_conflicts=True)
+    return True
+
+
+def payment_messages(p, days):
+    c = p.contract
+    with translation.override("ar"):
+        client_ar = c.client.name
+    amount = f"{p.amount} {c.currency}"
+    if days < 0:
+        en = f"Payment overdue: {amount} for contract {c.number} ({c.client.name_en}) was due on {_d(p.due_date, 'en')} and is not marked as paid."
+        ar = f"دفعة متأخرة: {amount} للعقد {c.number} ({client_ar}) كانت مستحقة بتاريخ {_d(p.due_date, 'ar')} ولم تسجل كمدفوعة."
+    else:
+        en = f"Payment due {_when(days, 'en')}: {amount} for contract {c.number} ({c.client.name_en}), on {_d(p.due_date, 'en')}."
+        ar = f"دفعة مستحقة {_when(days, 'ar')}: {amount} للعقد {c.number} ({client_ar})، بتاريخ {_d(p.due_date, 'ar')}."
+    return en, ar
+
+
 def run_reminders(today=None):
     """Create any reminder that has come due. Catches up after downtime because it selects by window, not by an
     exact date, and the unique (user, dedupe_key) constraint means re-running can never duplicate."""
@@ -444,6 +475,17 @@ def run_reminders(today=None):
             key = f"contract:{c.pk}:{c.end_date.isoformat()}"
             rows = [Notification(user=u, kind="contract", dedupe_key=key, message_en=en, message_ar=ar, contract=c) for u in watchers]
             Notification.objects.bulk_create(rows, ignore_conflicts=True)
+        # Catches emergency visits that arrived from phone reports, which have no contract form to warn on.
+        for c in Contract.objects.in_force().filter(emergency_visits__isnull=False).select_related("client"):
+            notify_emergency_used(c)
+        payments = (ContractPayment.objects.filter(paid_on__isnull=True, contract__status="active", due_date__lte=today + timedelta(days=PAYMENT_REMINDER_DAYS))
+                    .select_related("contract__client"))
+        for p in payments:
+            days = (p.due_date - today).days
+            en, ar = payment_messages(p, days)
+            key = f"payment:{p.pk}:{p.due_date.isoformat()}:{'late' if days < 0 else 'due'}"  # one before the date, one more once it is late
+            Notification.objects.bulk_create([Notification(user=u, kind="payment", dedupe_key=key, message_en=en, message_ar=ar, contract=p.contract) for u in watchers],
+                                             ignore_conflicts=True)
 
     if cfg.email_enabled:
         send_pending_emails()

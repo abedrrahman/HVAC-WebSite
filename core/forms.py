@@ -480,11 +480,11 @@ class UnitDocumentForm(DocumentForm):
 
 
 class ContractForm(BaseModelForm):
-    sections = (("General Information", ["number", "title", "client", "description"]), ("Period & Value", ["start_date", "end_date", "value", "currency"]), ("Notes", ["notes"]))
+    sections = (("General Information", ["number", "title", "client", "description"]), ("Period & Value", ["start_date", "end_date", "value", "currency", "emergency_visits"]), ("Notes", ["notes"]))
 
     class Meta:
         model = m.Contract
-        fields = ["number", "title", "client", "start_date", "end_date", "value", "currency", "description", "notes"]
+        fields = ["number", "title", "client", "start_date", "end_date", "value", "currency", "emergency_visits", "description", "notes"]
 
     def __init__(self, *a, **k):
         super().__init__(*a, **k)
