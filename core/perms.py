@@ -40,11 +40,7 @@ ALL_CODES = [c for group in PERMISSIONS.values() for c in group]
 
 DEFAULT_ROLES = {
     ("Administrator", "مدير النظام"): ALL_CODES,
-    ("Engineer", "مهندس"): [
-        "equipment.view", "equipment.edit", "clients.view", "manufacturers.view", "documents.view", "documents.upload",
-        "contracts.view", "schedules.view", "schedules.manage", "visits.view", "visits.manage", "visits.update",
-        "visits.attach", "reports.view", "notifications.visits", "scope.all", "reports.approve",
-    ],
+    ("Engineer", "مهندس"): [c for c in ALL_CODES if c != "users.manage"],  # everything an administrator has except managing users
     ("Foreman", "رئيس عمال"): [
         "equipment.view", "clients.view", "documents.view", "schedules.view", "visits.view", "visits.update", "visits.attach",
         "scope.all", "reports.review", "visits.overdue",

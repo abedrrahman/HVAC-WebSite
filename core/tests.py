@@ -52,6 +52,8 @@ class Base(TestCase):
         cls.tech = User.objects.create_user("tech", password="x", role=role("Technician"))
         cls.other_tech = User.objects.create_user("tech2", password="x", role=role("Technician"))
         cls.viewer = User.objects.create_user("view", password="x", role=role("Viewer"))
+        # Approves phone reports and nothing more: shows the approval order now that engineers hold every permission but user management.
+        cls.approver = User.objects.create_user("appr", password="x", role=Role.objects.create(name_en="Approver", permissions=["visits.view", "scope.all", "reports.approve"]))
         cls.jordan = Country.objects.get(code="JO")
         cls.chillers = Category.objects.get(name_en="Chillers")
         cls.ahu = Category.objects.get(name_en="Air Handling Units (AHU)")
@@ -558,7 +560,7 @@ class PhoneApp(Base):
     def test_report_forms_are_changed_on_the_web_reach_the_phone_and_follow_finished_reports(self):
         from .models import ReportForm
         from .report_forms import default_rows
-        self.client.force_login(self.engineer)
+        self.client.force_login(self.viewer)
         self.assertEqual(self.client.get(reverse("report_form_type", args=["chiller"])).status_code, 403)  # every chiller's form needs Settings
         self.client.force_login(self.admin)
         page = self.client.get(reverse("report_form_type", args=["chiller"]))
@@ -726,7 +728,7 @@ class PhoneApp(Base):
         self.client.post(reverse("api_report"), {"report": json.dumps(report), "pdf": SimpleUploadedFile("r.pdf", signed.getvalue(), "application/pdf")}, **self.token("tech"))
         fr = FieldReport.objects.get(app_report_id="r-5")
         told = lambda: set(Notification.objects.filter(field_report=fr).values_list("user__username", flat=True))
-        self.assertEqual((fr.status, told()), ("received", {"fore", "admin"}))  # the foremen are told first, the engineers not yet
+        self.assertEqual((fr.status, told()), ("received", {"fore", "admin", "eng"}))  # whoever can do the foreman's step is told first (engineers can too)
         view, url, step = (reverse(n, args=[fr.pk]) for n in ("maintenance_report_view", "maintenance_report_edit", "maintenance_report_step"))
         phone_pdf = fr.visit.attachments.get(kind="report")
 
@@ -736,7 +738,7 @@ class PhoneApp(Base):
         self.assertEqual(self.client.get(reverse("attachment_file", args=[phone_pdf.pk])).status_code, 403)
         self.client.force_login(self.tech)  # the technician who sent it can read it, not change it
         self.assertEqual((self.client.get(view).status_code, self.client.get(url).status_code), (200, 403))
-        self.client.force_login(self.engineer)  # not the engineer's turn yet
+        self.client.force_login(self.approver)  # not the approver's turn yet
         self.assertEqual((self.client.get(url).status_code, self.client.post(step, {"status": "received"}).status_code), (403, 403))
 
         self.client.force_login(foreman)
@@ -756,7 +758,7 @@ class PhoneApp(Base):
         self.assertRedirects(self.client.get(reverse("visit_report", args=[fr.visit_id])), url)  # one place to edit: the hand-written form would be overwritten
         self.client.post(step, {"status": "received"})
         fr.refresh_from_db()
-        self.assertEqual((fr.status, fr.foreman_by, told()), ("engineer", foreman, {"fore", "admin", "eng"}))
+        self.assertEqual((fr.status, fr.foreman_by, told()), ("engineer", foreman, {"fore", "admin", "eng", "appr"}))
         self.assertEqual(self.client.get(url).status_code, 403)  # the foreman's turn is over
 
         self.client.force_login(self.engineer)
@@ -848,7 +850,7 @@ class PhoneApp(Base):
 
     def test_limits_follow_settings_then_model_then_unit_and_changes_are_logged(self):
         from .services import limits_for
-        self.client.force_login(self.engineer)  # Settings limits need the settings permission
+        self.client.force_login(self.viewer)  # Settings limits need the settings permission
         self.assertEqual(self.client.get(reverse("reading_limits")).status_code, 403)
         self.client.force_login(self.admin)
         page = self.client.get(reverse("reading_limits"))
@@ -986,10 +988,12 @@ class UnitDocumentAdd(Base):
         self.assertEqual([a.level for a in links], ["unit"])
 
     def test_wide_scopes_need_the_manage_permission(self):
-        r = self.post("all", user=self.engineer)
+        uploader = User.objects.create_user("upl", password="x", role=Role.objects.create(name_en="Uploader", permissions=[
+            "equipment.view", "equipment.edit", "documents.view", "documents.upload", "scope.all"]))  # may upload, may not manage documents
+        r = self.post("all", user=uploader)
         self.assertEqual(r.status_code, 200)
         self.assertFalse(Document.objects.filter(name_en="Added").exists())
-        self.assertEqual(self.post("subtype", user=self.engineer).status_code, 302)  # engineers could already share by subtype
+        self.assertEqual(self.post("subtype", user=uploader).status_code, 302)  # sharing by subtype needs only upload rights
 
     def test_viewer_cannot_add(self):
         self.client.force_login(self.viewer)
@@ -1268,15 +1272,15 @@ class Reminders(Base):
         v = Visit.objects.create(unit=self.c1, client=self.client_a, scheduled_date=date(2026, 12, 10), technician=self.tech)
         run_reminders(date(2026, 12, 13)), run_reminders(date(2026, 12, 14))  # twice: still one notification each
         told = Notification.objects.filter(visit=v, dedupe_key__startswith="overdue:")
-        self.assertEqual(set(told.values_list("user__username", flat=True)), {"fore2", "admin"})  # not the engineer or the technician
+        self.assertEqual(set(told.values_list("user__username", flat=True)), {"fore2", "admin", "eng"})  # not the technician or a viewer
         self.assertEqual(told.get(user=foreman).message_en, "Overdue: Preventive Maintenance for Chiller 01 at Hikma was due on 10 December 2026 (3 days ago) and has no report yet.")
         Visit.objects.filter(pk=v.pk).update(scheduled_date=self.today - timedelta(days=2))
-        for user, sees in ((self.engineer, False), (foreman, True)):
+        for user, sees in ((self.viewer, False), (foreman, True)):
             self.client.force_login(user)
             board = [key for key, *_ in self.client.get(reverse("visit_list")).context["columns"]]
             dash = self.client.get(reverse("dashboard")).context
             self.assertEqual(("overdue" in board, any(c[0] == "Overdue Visits" for c in dash["attention_cards"]), bool(dash["overdue"])), (sees, sees, sees))
-        for user, code in ((self.engineer, 403), (self.admin, 200)):  # the engineer can open other reports, not this one; foremen have no Reports menu
+        for user, code in ((self.viewer, 403), (self.admin, 200)):  # a viewer can open other reports, not this one; foremen have no Reports menu
             self.client.force_login(user)
             self.assertEqual(self.client.get(reverse("report_view", args=["visits-overdue"])).status_code, code)
 
