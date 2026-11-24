@@ -1,0 +1,1610 @@
+{
+ "source": "hvac-maintenance-app constants/checklists.ts",
+ "types": {
+  "ahu": [
+   {
+    "key": "unit_phase",
+    "label_en": "Power Supply (Phase)",
+    "label_ar": "نوع الكهرباء (فاز)",
+    "group": "unit"
+   },
+   {
+    "key": "voltage",
+    "label_en": "Voltage",
+    "label_ar": "الفولتيه",
+    "group": "unit",
+    "phase": "1Ph"
+   },
+   {
+    "key": "voltage_l1l2",
+    "label_en": "Voltage L1-L2",
+    "label_ar": "الفولتيه L1-L2",
+    "group": "unit",
+    "phase": "3Ph"
+   },
+   {
+    "key": "voltage_l1l3",
+    "label_en": "Voltage L1-L3",
+    "label_ar": "الفولتيه L1-L3",
+    "group": "unit",
+    "phase": "3Ph"
+   },
+   {
+    "key": "voltage_l2l3",
+    "label_en": "Voltage L2-L3",
+    "label_ar": "الفولتيه L2-L3",
+    "group": "unit",
+    "phase": "3Ph"
+   },
+   {
+    "key": "voltage_ln",
+    "label_en": "Voltage L-N (Neutral)",
+    "label_ar": "الفولتيه فاز - نيوترل",
+    "group": "unit",
+    "phase": "3Ph"
+   },
+   {
+    "key": "phase_rotation",
+    "label_en": "Phase Rotation",
+    "label_ar": "اتجاه الفازات",
+    "group": "unit"
+   },
+   {
+    "key": "electrical_panel",
+    "label_en": "Electrical Panel Status",
+    "label_ar": "لوحة الكهرباء",
+    "group": "unit"
+   },
+   {
+    "key": "supply_fan_count",
+    "label_en": "Number of Supply Fans",
+    "label_ar": "عدد مراوح التزويد",
+    "group": "unit"
+   },
+   {
+    "key": "extract_fan_count",
+    "label_en": "Number of Extract Fans",
+    "label_ar": "عدد مراوح الطرد",
+    "group": "unit"
+   },
+   {
+    "key": "return_fan_count",
+    "label_en": "Number of Return Fans",
+    "label_ar": "عدد مراوح الراجع",
+    "group": "unit"
+   },
+   {
+    "key": "supply_fan_#_amps",
+    "label_en": "Supply Fan # Amps",
+    "label_ar": "أمبير مروحة التزويد #",
+    "group": "supply_fan",
+    "phase": "1Ph"
+   },
+   {
+    "key": "extract_fan_#_amps",
+    "label_en": "Extract Fan # Amps",
+    "label_ar": "أمبير مروحة الطرد #",
+    "group": "extract_fan",
+    "phase": "1Ph"
+   },
+   {
+    "key": "return_fan_#_amps",
+    "label_en": "Return Fan # Amps",
+    "label_ar": "أمبير مروحة الراجع #",
+    "group": "return_fan",
+    "phase": "1Ph"
+   },
+   {
+    "key": "supply_fan_#_amps_l1",
+    "label_en": "Supply Fan # Amps L1",
+    "label_ar": "أمبير مروحة التزويد # L1",
+    "group": "supply_fan",
+    "phase": "3Ph"
+   },
+   {
+    "key": "supply_fan_#_amps_l2",
+    "label_en": "Supply Fan # Amps L2",
+    "label_ar": "أمبير مروحة التزويد # L2",
+    "group": "supply_fan",
+    "phase": "3Ph"
+   },
+   {
+    "key": "supply_fan_#_amps_l3",
+    "label_en": "Supply Fan # Amps L3",
+    "label_ar": "أمبير مروحة التزويد # L3",
+    "group": "supply_fan",
+    "phase": "3Ph"
+   },
+   {
+    "key": "extract_fan_#_amps_l1",
+    "label_en": "Extract Fan # Amps L1",
+    "label_ar": "أمبير مروحة الطرد # L1",
+    "group": "extract_fan",
+    "phase": "3Ph"
+   },
+   {
+    "key": "extract_fan_#_amps_l2",
+    "label_en": "Extract Fan # Amps L2",
+    "label_ar": "أمبير مروحة الطرد # L2",
+    "group": "extract_fan",
+    "phase": "3Ph"
+   },
+   {
+    "key": "extract_fan_#_amps_l3",
+    "label_en": "Extract Fan # Amps L3",
+    "label_ar": "أمبير مروحة الطرد # L3",
+    "group": "extract_fan",
+    "phase": "3Ph"
+   },
+   {
+    "key": "return_fan_#_amps_l1",
+    "label_en": "Return Fan # Amps L1",
+    "label_ar": "أمبير مروحة الراجع # L1",
+    "group": "return_fan",
+    "phase": "3Ph"
+   },
+   {
+    "key": "return_fan_#_amps_l2",
+    "label_en": "Return Fan # Amps L2",
+    "label_ar": "أمبير مروحة الراجع # L2",
+    "group": "return_fan",
+    "phase": "3Ph"
+   },
+   {
+    "key": "return_fan_#_amps_l3",
+    "label_en": "Return Fan # Amps L3",
+    "label_ar": "أمبير مروحة الراجع # L3",
+    "group": "return_fan",
+    "phase": "3Ph"
+   },
+   {
+    "key": "strainer",
+    "label_en": "Strainer's Status",
+    "label_ar": "السترينر",
+    "group": "unit"
+   },
+   {
+    "key": "water_in_temp",
+    "label_en": "Water In Temperature",
+    "label_ar": "حرارة الماء الداخل",
+    "group": "unit"
+   },
+   {
+    "key": "water_out_temp",
+    "label_en": "Water Out Temperature",
+    "label_ar": "حرارة الماء الخارج",
+    "group": "unit"
+   },
+   {
+    "key": "air_supply_temp",
+    "label_en": "Air Temp Supply",
+    "label_ar": "حرارة الهواء الداخل",
+    "group": "unit"
+   },
+   {
+    "key": "air_return_temp",
+    "label_en": "Air Temp Return",
+    "label_ar": "حرارة الهواء الراجع",
+    "group": "unit"
+   },
+   {
+    "key": "filter",
+    "label_en": "Filter Status",
+    "label_ar": "الفالتر",
+    "group": "unit"
+   },
+   {
+    "key": "airflow",
+    "label_en": "Airflow Supply/Return",
+    "label_ar": "تدفق الهواء",
+    "group": "unit"
+   },
+   {
+    "key": "drain",
+    "label_en": "Drain",
+    "label_ar": "الدرين",
+    "group": "unit"
+   },
+   {
+    "key": "heaters",
+    "label_en": "Heaters",
+    "label_ar": "الهياتر اذا وجدت",
+    "group": "unit"
+   },
+   {
+    "key": "coil",
+    "label_en": "Coil",
+    "label_ar": "كويل الماء",
+    "group": "unit"
+   }
+  ],
+  "chiller": [
+   {
+    "key": "unit_phase",
+    "label_en": "Power Supply (Phase)",
+    "label_ar": "نوع الكهرباء (فاز)",
+    "group": "unit"
+   },
+   {
+    "key": "refrigerant_type",
+    "label_en": "Refrigerant Type",
+    "label_ar": "نوع الفريون",
+    "group": "unit"
+   },
+   {
+    "key": "compressor_count",
+    "label_en": "Number of Compressors",
+    "label_ar": "عدد الضواغط",
+    "group": "unit"
+   },
+   {
+    "key": "circuit_count",
+    "label_en": "Number of Circuits/Cycles",
+    "label_ar": "عدد الدوائر",
+    "group": "unit"
+   },
+   {
+    "key": "compressor_#_amps",
+    "label_en": "Compressor # Amps",
+    "label_ar": "أمبير الضاغط #",
+    "group": "compressor",
+    "phase": "1Ph"
+   },
+   {
+    "key": "compressor_#_voltage_1ph",
+    "label_en": "Compressor # Voltage (1Ph)",
+    "label_ar": "فولتيه الضاغط # (أحادي)",
+    "group": "compressor",
+    "phase": "1Ph"
+   },
+   {
+    "key": "compressor_#_amps_l1",
+    "label_en": "Compressor # Amps L1",
+    "label_ar": "أمبير الضاغط # L1",
+    "group": "compressor",
+    "phase": "3Ph"
+   },
+   {
+    "key": "compressor_#_amps_l2",
+    "label_en": "Compressor # Amps L2",
+    "label_ar": "أمبير الضاغط # L2",
+    "group": "compressor",
+    "phase": "3Ph"
+   },
+   {
+    "key": "compressor_#_amps_l3",
+    "label_en": "Compressor # Amps L3",
+    "label_ar": "أمبير الضاغط # L3",
+    "group": "compressor",
+    "phase": "3Ph"
+   },
+   {
+    "key": "compressor_#_voltage_l1l2",
+    "label_en": "Compressor # L1-L2",
+    "label_ar": "الضاغط # L1-L2",
+    "group": "compressor",
+    "phase": "3Ph"
+   },
+   {
+    "key": "compressor_#_voltage_l1l3",
+    "label_en": "Compressor # L1-L3",
+    "label_ar": "الضاغط # L1-L3",
+    "group": "compressor",
+    "phase": "3Ph"
+   },
+   {
+    "key": "compressor_#_voltage_l2l3",
+    "label_en": "Compressor # L2-L3",
+    "label_ar": "الضاغط # L2-L3",
+    "group": "compressor",
+    "phase": "3Ph"
+   },
+   {
+    "key": "compressor_#_voltage_ln",
+    "label_en": "Compressor # L-N (Neutral)",
+    "label_ar": "الضاغط # فاز - نيوترل",
+    "group": "compressor",
+    "phase": "3Ph"
+   },
+   {
+    "key": "circuit_#_suction_pressure",
+    "label_en": "Circuit # Suction Pressure",
+    "label_ar": "ضغط السحب - دائرة #",
+    "group": "circuit"
+   },
+   {
+    "key": "circuit_#_discharge_pressure",
+    "label_en": "Circuit # Discharge Pressure",
+    "label_ar": "ضغط الضخ - دائرة #",
+    "group": "circuit"
+   },
+   {
+    "key": "circuit_#_suction_temp",
+    "label_en": "Circuit # Suction Temp",
+    "label_ar": "درجة حرارة السحب - دائرة #",
+    "group": "circuit"
+   },
+   {
+    "key": "circuit_#_discharge_temp",
+    "label_en": "Circuit # Discharge Temp",
+    "label_ar": "درجة حرارة الضخ - دائرة #",
+    "group": "circuit"
+   },
+   {
+    "key": "machine_load",
+    "label_en": "Machine Load (%)",
+    "label_ar": "نسبة تحميل المكينة",
+    "group": "unit"
+   },
+   {
+    "key": "phase_rotation",
+    "label_en": "Phase Rotation",
+    "label_ar": "اتجاه الفازات",
+    "group": "unit"
+   },
+   {
+    "key": "evap_water_in",
+    "label_en": "Evap. Water Temp In",
+    "label_ar": "حرارة ماء المبخر دخول",
+    "group": "unit"
+   },
+   {
+    "key": "evap_water_out",
+    "label_en": "Evap. Water Temp Out",
+    "label_ar": "حرارة ماء المبخر خروج",
+    "group": "unit"
+   },
+   {
+    "key": "cond_water_in",
+    "label_en": "Cond. Water Temp In",
+    "label_ar": "حرارة ماء الكوندنسر دخول",
+    "group": "unit"
+   },
+   {
+    "key": "cond_water_out",
+    "label_en": "Cond. Water Temp Out",
+    "label_ar": "حرارة ماء الكوندنسر خروج",
+    "group": "unit"
+   },
+   {
+    "key": "oil_pressure",
+    "label_en": "Oil Pressure",
+    "label_ar": "ضغط الزيت",
+    "group": "unit"
+   },
+   {
+    "key": "electrical_panel",
+    "label_en": "Electrical Panel",
+    "label_ar": "لوحة الكهرباء",
+    "group": "unit"
+   }
+  ],
+  "fcu": [
+   {
+    "key": "unit_phase",
+    "label_en": "Power Supply (Phase)",
+    "label_ar": "نوع الكهرباء (فاز)",
+    "group": "unit"
+   },
+   {
+    "key": "voltage",
+    "label_en": "Voltage",
+    "label_ar": "الفولتيه",
+    "group": "unit",
+    "phase": "1Ph"
+   },
+   {
+    "key": "voltage_l1l2",
+    "label_en": "Voltage L1-L2",
+    "label_ar": "الفولتيه L1-L2",
+    "group": "unit",
+    "phase": "3Ph"
+   },
+   {
+    "key": "voltage_l1l3",
+    "label_en": "Voltage L1-L3",
+    "label_ar": "الفولتيه L1-L3",
+    "group": "unit",
+    "phase": "3Ph"
+   },
+   {
+    "key": "voltage_l2l3",
+    "label_en": "Voltage L2-L3",
+    "label_ar": "الفولتيه L2-L3",
+    "group": "unit",
+    "phase": "3Ph"
+   },
+   {
+    "key": "voltage_ln",
+    "label_en": "Voltage L-N (Neutral)",
+    "label_ar": "الفولتيه فاز - نيوترل",
+    "group": "unit",
+    "phase": "3Ph"
+   },
+   {
+    "key": "supply_air_temp",
+    "label_en": "Supply Air Temp",
+    "label_ar": "حرارة الهواء المزود",
+    "group": "unit"
+   },
+   {
+    "key": "return_air_temp",
+    "label_en": "Return Air Temp",
+    "label_ar": "حرارة الهواء الراجع",
+    "group": "unit"
+   },
+   {
+    "key": "compressor_count",
+    "label_en": "Number of Compressors",
+    "label_ar": "عدد الضواغط",
+    "group": "unit"
+   },
+   {
+    "key": "circuit_count",
+    "label_en": "Number of Circuits/Cycles",
+    "label_ar": "عدد الدوائر",
+    "group": "unit"
+   },
+   {
+    "key": "compressor_#_amps",
+    "label_en": "Compressor # Amps",
+    "label_ar": "أمبير الضاغط #",
+    "group": "compressor",
+    "phase": "1Ph"
+   },
+   {
+    "key": "compressor_#_amps_l1",
+    "label_en": "Compressor # Amps L1",
+    "label_ar": "أمبير الضاغط # L1",
+    "group": "compressor",
+    "phase": "3Ph"
+   },
+   {
+    "key": "compressor_#_amps_l2",
+    "label_en": "Compressor # Amps L2",
+    "label_ar": "أمبير الضاغط # L2",
+    "group": "compressor",
+    "phase": "3Ph"
+   },
+   {
+    "key": "compressor_#_amps_l3",
+    "label_en": "Compressor # Amps L3",
+    "label_ar": "أمبير الضاغط # L3",
+    "group": "compressor",
+    "phase": "3Ph"
+   },
+   {
+    "key": "circuit_#_suction_pressure",
+    "label_en": "Circuit # Suction Pressure",
+    "label_ar": "ضغط السحب - دائرة #",
+    "group": "circuit"
+   },
+   {
+    "key": "circuit_#_discharge_pressure",
+    "label_en": "Circuit # Discharge Pressure",
+    "label_ar": "ضغط الضخ - دائرة #",
+    "group": "circuit"
+   },
+   {
+    "key": "fan_speed",
+    "label_en": "Fan Speed",
+    "label_ar": "سرعة المروحة",
+    "group": "unit"
+   },
+   {
+    "key": "refrigerant",
+    "label_en": "Refrigerant Type",
+    "label_ar": "نوع الفريون",
+    "group": "unit"
+   },
+   {
+    "key": "filter",
+    "label_en": "Filter Status",
+    "label_ar": "الفالتر",
+    "group": "unit"
+   },
+   {
+    "key": "drain",
+    "label_en": "Drain",
+    "label_ar": "الدرين",
+    "group": "unit"
+   }
+  ],
+  "split": [
+   {
+    "key": "unit_phase",
+    "label_en": "Power Supply (Phase)",
+    "label_ar": "نوع الكهرباء (فاز)",
+    "group": "unit"
+   },
+   {
+    "key": "voltage",
+    "label_en": "Voltage",
+    "label_ar": "الفولتيه",
+    "group": "unit",
+    "phase": "1Ph"
+   },
+   {
+    "key": "voltage_l1l2",
+    "label_en": "Voltage L1-L2",
+    "label_ar": "الفولتيه L1-L2",
+    "group": "unit",
+    "phase": "3Ph"
+   },
+   {
+    "key": "voltage_l1l3",
+    "label_en": "Voltage L1-L3",
+    "label_ar": "الفولتيه L1-L3",
+    "group": "unit",
+    "phase": "3Ph"
+   },
+   {
+    "key": "voltage_l2l3",
+    "label_en": "Voltage L2-L3",
+    "label_ar": "الفولتيه L2-L3",
+    "group": "unit",
+    "phase": "3Ph"
+   },
+   {
+    "key": "voltage_ln",
+    "label_en": "Voltage L-N (Neutral)",
+    "label_ar": "الفولتيه فاز - نيوترل",
+    "group": "unit",
+    "phase": "3Ph"
+   },
+   {
+    "key": "supply_air_temp",
+    "label_en": "Supply Air Temp",
+    "label_ar": "حرارة الهواء المزود",
+    "group": "unit"
+   },
+   {
+    "key": "return_air_temp",
+    "label_en": "Return Air Temp",
+    "label_ar": "حرارة الهواء الراجع",
+    "group": "unit"
+   },
+   {
+    "key": "compressor_count",
+    "label_en": "Number of Compressors",
+    "label_ar": "عدد الضواغط",
+    "group": "unit"
+   },
+   {
+    "key": "circuit_count",
+    "label_en": "Number of Circuits/Cycles",
+    "label_ar": "عدد الدوائر",
+    "group": "unit"
+   },
+   {
+    "key": "compressor_#_amps",
+    "label_en": "Compressor # Amps",
+    "label_ar": "أمبير الضاغط #",
+    "group": "compressor",
+    "phase": "1Ph"
+   },
+   {
+    "key": "compressor_#_amps_l1",
+    "label_en": "Compressor # Amps L1",
+    "label_ar": "أمبير الضاغط # L1",
+    "group": "compressor",
+    "phase": "3Ph"
+   },
+   {
+    "key": "compressor_#_amps_l2",
+    "label_en": "Compressor # Amps L2",
+    "label_ar": "أمبير الضاغط # L2",
+    "group": "compressor",
+    "phase": "3Ph"
+   },
+   {
+    "key": "compressor_#_amps_l3",
+    "label_en": "Compressor # Amps L3",
+    "label_ar": "أمبير الضاغط # L3",
+    "group": "compressor",
+    "phase": "3Ph"
+   },
+   {
+    "key": "circuit_#_suction_pressure",
+    "label_en": "Circuit # Suction Pressure",
+    "label_ar": "ضغط السحب - دائرة #",
+    "group": "circuit"
+   },
+   {
+    "key": "circuit_#_discharge_pressure",
+    "label_en": "Circuit # Discharge Pressure",
+    "label_ar": "ضغط الضخ - دائرة #",
+    "group": "circuit"
+   },
+   {
+    "key": "fan_speed",
+    "label_en": "Fan Speed",
+    "label_ar": "سرعة المروحة",
+    "group": "unit"
+   },
+   {
+    "key": "refrigerant",
+    "label_en": "Refrigerant Type",
+    "label_ar": "نوع الفريون",
+    "group": "unit"
+   },
+   {
+    "key": "filter",
+    "label_en": "Filter Status",
+    "label_ar": "الفالتر",
+    "group": "unit"
+   },
+   {
+    "key": "drain",
+    "label_en": "Drain",
+    "label_ar": "الدرين",
+    "group": "unit"
+   }
+  ],
+  "rtu": [
+   {
+    "key": "unit_phase",
+    "label_en": "Power Supply (Phase)",
+    "label_ar": "نوع الكهرباء (فاز)",
+    "group": "unit"
+   },
+   {
+    "key": "voltage",
+    "label_en": "Voltage",
+    "label_ar": "الفولتيه",
+    "group": "unit",
+    "phase": "1Ph"
+   },
+   {
+    "key": "voltage_l1l2",
+    "label_en": "Voltage L1-L2",
+    "label_ar": "الفولتيه L1-L2",
+    "group": "unit",
+    "phase": "3Ph"
+   },
+   {
+    "key": "voltage_l1l3",
+    "label_en": "Voltage L1-L3",
+    "label_ar": "الفولتيه L1-L3",
+    "group": "unit",
+    "phase": "3Ph"
+   },
+   {
+    "key": "voltage_l2l3",
+    "label_en": "Voltage L2-L3",
+    "label_ar": "الفولتيه L2-L3",
+    "group": "unit",
+    "phase": "3Ph"
+   },
+   {
+    "key": "voltage_ln",
+    "label_en": "Voltage L-N (Neutral)",
+    "label_ar": "الفولتيه فاز - نيوترل",
+    "group": "unit",
+    "phase": "3Ph"
+   },
+   {
+    "key": "phase_rotation",
+    "label_en": "Phase Rotation",
+    "label_ar": "اتجاه الفازات",
+    "group": "unit"
+   },
+   {
+    "key": "electrical_panel",
+    "label_en": "Electrical Panel Status",
+    "label_ar": "لوحة الكهرباء",
+    "group": "unit"
+   },
+   {
+    "key": "machine_load",
+    "label_en": "Machine Load (%)",
+    "label_ar": "نسبة تحميل المكينة",
+    "group": "unit"
+   },
+   {
+    "key": "compressor_count",
+    "label_en": "Number of Compressors",
+    "label_ar": "عدد الضواغط",
+    "group": "unit"
+   },
+   {
+    "key": "circuit_count",
+    "label_en": "Number of Circuits/Cycles",
+    "label_ar": "عدد الدوائر",
+    "group": "unit"
+   },
+   {
+    "key": "supply_fan_count",
+    "label_en": "Number of Supply Fans",
+    "label_ar": "عدد مراوح التزويد",
+    "group": "unit"
+   },
+   {
+    "key": "extract_fan_count",
+    "label_en": "Number of Extract Fans",
+    "label_ar": "عدد مراوح الطرد",
+    "group": "unit"
+   },
+   {
+    "key": "return_fan_count",
+    "label_en": "Number of Return Fans",
+    "label_ar": "عدد مراوح الراجع",
+    "group": "unit"
+   },
+   {
+    "key": "compressor_#_amps",
+    "label_en": "Compressor # Amps",
+    "label_ar": "أمبير الضاغط #",
+    "group": "compressor",
+    "phase": "1Ph"
+   },
+   {
+    "key": "compressor_#_amps_l1",
+    "label_en": "Compressor # Amps L1",
+    "label_ar": "أمبير الضاغط # L1",
+    "group": "compressor",
+    "phase": "3Ph"
+   },
+   {
+    "key": "compressor_#_amps_l2",
+    "label_en": "Compressor # Amps L2",
+    "label_ar": "أمبير الضاغط # L2",
+    "group": "compressor",
+    "phase": "3Ph"
+   },
+   {
+    "key": "compressor_#_amps_l3",
+    "label_en": "Compressor # Amps L3",
+    "label_ar": "أمبير الضاغط # L3",
+    "group": "compressor",
+    "phase": "3Ph"
+   },
+   {
+    "key": "circuit_#_suction_pressure",
+    "label_en": "Circuit # Suction Pressure",
+    "label_ar": "ضغط السحب - دائرة #",
+    "group": "circuit"
+   },
+   {
+    "key": "circuit_#_discharge_pressure",
+    "label_en": "Circuit # Discharge Pressure",
+    "label_ar": "ضغط الضخ - دائرة #",
+    "group": "circuit"
+   },
+   {
+    "key": "supply_fan_#_amps",
+    "label_en": "Supply Fan # Amps",
+    "label_ar": "أمبير مروحة التزويد #",
+    "group": "supply_fan",
+    "phase": "1Ph"
+   },
+   {
+    "key": "extract_fan_#_amps",
+    "label_en": "Extract Fan # Amps",
+    "label_ar": "أمبير مروحة الطرد #",
+    "group": "extract_fan",
+    "phase": "1Ph"
+   },
+   {
+    "key": "return_fan_#_amps",
+    "label_en": "Return Fan # Amps",
+    "label_ar": "أمبير مروحة الراجع #",
+    "group": "return_fan",
+    "phase": "1Ph"
+   },
+   {
+    "key": "condenser_fan_amps",
+    "label_en": "Condenser Fan Amps",
+    "label_ar": "أمبير مروحة الكوندنسر",
+    "group": "unit",
+    "phase": "1Ph"
+   },
+   {
+    "key": "supply_fan_#_amps_l1",
+    "label_en": "Supply Fan # Amps L1",
+    "label_ar": "أمبير مروحة التزويد # L1",
+    "group": "supply_fan",
+    "phase": "3Ph"
+   },
+   {
+    "key": "supply_fan_#_amps_l2",
+    "label_en": "Supply Fan # Amps L2",
+    "label_ar": "أمبير مروحة التزويد # L2",
+    "group": "supply_fan",
+    "phase": "3Ph"
+   },
+   {
+    "key": "supply_fan_#_amps_l3",
+    "label_en": "Supply Fan # Amps L3",
+    "label_ar": "أمبير مروحة التزويد # L3",
+    "group": "supply_fan",
+    "phase": "3Ph"
+   },
+   {
+    "key": "extract_fan_#_amps_l1",
+    "label_en": "Extract Fan # Amps L1",
+    "label_ar": "أمبير مروحة الطرد # L1",
+    "group": "extract_fan",
+    "phase": "3Ph"
+   },
+   {
+    "key": "extract_fan_#_amps_l2",
+    "label_en": "Extract Fan # Amps L2",
+    "label_ar": "أمبير مروحة الطرد # L2",
+    "group": "extract_fan",
+    "phase": "3Ph"
+   },
+   {
+    "key": "extract_fan_#_amps_l3",
+    "label_en": "Extract Fan # Amps L3",
+    "label_ar": "أمبير مروحة الطرد # L3",
+    "group": "extract_fan",
+    "phase": "3Ph"
+   },
+   {
+    "key": "return_fan_#_amps_l1",
+    "label_en": "Return Fan # Amps L1",
+    "label_ar": "أمبير مروحة الراجع # L1",
+    "group": "return_fan",
+    "phase": "3Ph"
+   },
+   {
+    "key": "return_fan_#_amps_l2",
+    "label_en": "Return Fan # Amps L2",
+    "label_ar": "أمبير مروحة الراجع # L2",
+    "group": "return_fan",
+    "phase": "3Ph"
+   },
+   {
+    "key": "return_fan_#_amps_l3",
+    "label_en": "Return Fan # Amps L3",
+    "label_ar": "أمبير مروحة الراجع # L3",
+    "group": "return_fan",
+    "phase": "3Ph"
+   },
+   {
+    "key": "condenser_fan_amps_l1",
+    "label_en": "Condenser Fan Amps L1",
+    "label_ar": "أمبير مروحة الكوندنسر L1",
+    "group": "unit",
+    "phase": "3Ph"
+   },
+   {
+    "key": "condenser_fan_amps_l2",
+    "label_en": "Condenser Fan Amps L2",
+    "label_ar": "أمبير مروحة الكوندنسر L2",
+    "group": "unit",
+    "phase": "3Ph"
+   },
+   {
+    "key": "condenser_fan_amps_l3",
+    "label_en": "Condenser Fan Amps L3",
+    "label_ar": "أمبير مروحة الكوندنسر L3",
+    "group": "unit",
+    "phase": "3Ph"
+   },
+   {
+    "key": "refrigerant",
+    "label_en": "Refrigerant Type",
+    "label_ar": "نوع الفريون",
+    "group": "unit"
+   },
+   {
+    "key": "supply_air_temp",
+    "label_en": "Supply Air Temp",
+    "label_ar": "حرارة الهواء المزود",
+    "group": "unit"
+   },
+   {
+    "key": "return_air_temp",
+    "label_en": "Return Air Temp",
+    "label_ar": "حرارة الهواء الراجع",
+    "group": "unit"
+   },
+   {
+    "key": "mixed_air_temp",
+    "label_en": "Mixed Air Temp",
+    "label_ar": "حرارة الهواء المخلوط",
+    "group": "unit"
+   },
+   {
+    "key": "fresh_air_temp",
+    "label_en": "Fresh / Outside Air Temp",
+    "label_ar": "حرارة الهواء النقي (الخارجي)",
+    "group": "unit"
+   },
+   {
+    "key": "filter",
+    "label_en": "Filter Status",
+    "label_ar": "الفالتر",
+    "group": "unit"
+   },
+   {
+    "key": "fan_belt",
+    "label_en": "Fan Belt",
+    "label_ar": "سير المروحة",
+    "group": "unit"
+   },
+   {
+    "key": "evaporator_coil",
+    "label_en": "Evaporator Coil",
+    "label_ar": "كويل المبخر",
+    "group": "unit"
+   },
+   {
+    "key": "condenser_coil",
+    "label_en": "Condenser Coil",
+    "label_ar": "كويل الكوندنسر",
+    "group": "unit"
+   },
+   {
+    "key": "drain",
+    "label_en": "Drain",
+    "label_ar": "الدرين",
+    "group": "unit"
+   },
+   {
+    "key": "heaters",
+    "label_en": "Heaters",
+    "label_ar": "الهياتر اذا وجدت",
+    "group": "unit"
+   },
+   {
+    "key": "thermostat",
+    "label_en": "Thermostat / Controls",
+    "label_ar": "الثرموستات والتحكم",
+    "group": "unit"
+   }
+  ],
+  "dehumidifier": [
+   {
+    "key": "unit_phase",
+    "label_en": "Power Supply (Phase)",
+    "label_ar": "نوع الكهرباء (فاز)",
+    "group": "unit"
+   },
+   {
+    "key": "voltage",
+    "label_en": "Voltage",
+    "label_ar": "الفولتيه",
+    "group": "unit",
+    "phase": "1Ph"
+   },
+   {
+    "key": "voltage_l1l2",
+    "label_en": "Voltage L1-L2",
+    "label_ar": "الفولتيه L1-L2",
+    "group": "unit",
+    "phase": "3Ph"
+   },
+   {
+    "key": "voltage_l1l3",
+    "label_en": "Voltage L1-L3",
+    "label_ar": "الفولتيه L1-L3",
+    "group": "unit",
+    "phase": "3Ph"
+   },
+   {
+    "key": "voltage_l2l3",
+    "label_en": "Voltage L2-L3",
+    "label_ar": "الفولتيه L2-L3",
+    "group": "unit",
+    "phase": "3Ph"
+   },
+   {
+    "key": "voltage_ln",
+    "label_en": "Voltage L-N (Neutral)",
+    "label_ar": "الفولتيه فاز - نيوترل",
+    "group": "unit",
+    "phase": "3Ph"
+   },
+   {
+    "key": "phase_rotation",
+    "label_en": "Phase Rotation",
+    "label_ar": "اتجاه الفازات",
+    "group": "unit"
+   },
+   {
+    "key": "electrical_panel",
+    "label_en": "Electrical Panel Status",
+    "label_ar": "لوحة الكهرباء",
+    "group": "unit"
+   },
+   {
+    "key": "machine_load",
+    "label_en": "Machine Load (%)",
+    "label_ar": "نسبة تحميل المكينة",
+    "group": "unit"
+   },
+   {
+    "key": "compressor_count",
+    "label_en": "Number of Compressors",
+    "label_ar": "عدد الضواغط",
+    "group": "unit"
+   },
+   {
+    "key": "circuit_count",
+    "label_en": "Number of Circuits/Cycles",
+    "label_ar": "عدد الدوائر",
+    "group": "unit"
+   },
+   {
+    "key": "supply_fan_count",
+    "label_en": "Number of Supply Fans",
+    "label_ar": "عدد مراوح التزويد",
+    "group": "unit"
+   },
+   {
+    "key": "extract_fan_count",
+    "label_en": "Number of Extract Fans",
+    "label_ar": "عدد مراوح الطرد",
+    "group": "unit"
+   },
+   {
+    "key": "return_fan_count",
+    "label_en": "Number of Return Fans",
+    "label_ar": "عدد مراوح الراجع",
+    "group": "unit"
+   },
+   {
+    "key": "compressor_#_amps",
+    "label_en": "Compressor # Amps",
+    "label_ar": "أمبير الضاغط #",
+    "group": "compressor",
+    "phase": "1Ph"
+   },
+   {
+    "key": "compressor_#_amps_l1",
+    "label_en": "Compressor # Amps L1",
+    "label_ar": "أمبير الضاغط # L1",
+    "group": "compressor",
+    "phase": "3Ph"
+   },
+   {
+    "key": "compressor_#_amps_l2",
+    "label_en": "Compressor # Amps L2",
+    "label_ar": "أمبير الضاغط # L2",
+    "group": "compressor",
+    "phase": "3Ph"
+   },
+   {
+    "key": "compressor_#_amps_l3",
+    "label_en": "Compressor # Amps L3",
+    "label_ar": "أمبير الضاغط # L3",
+    "group": "compressor",
+    "phase": "3Ph"
+   },
+   {
+    "key": "circuit_#_suction_pressure",
+    "label_en": "Circuit # Suction Pressure",
+    "label_ar": "ضغط السحب - دائرة #",
+    "group": "circuit"
+   },
+   {
+    "key": "circuit_#_discharge_pressure",
+    "label_en": "Circuit # Discharge Pressure",
+    "label_ar": "ضغط الضخ - دائرة #",
+    "group": "circuit"
+   },
+   {
+    "key": "supply_fan_#_amps",
+    "label_en": "Supply Fan # Amps",
+    "label_ar": "أمبير مروحة التزويد #",
+    "group": "supply_fan",
+    "phase": "1Ph"
+   },
+   {
+    "key": "extract_fan_#_amps",
+    "label_en": "Extract Fan # Amps",
+    "label_ar": "أمبير مروحة الطرد #",
+    "group": "extract_fan",
+    "phase": "1Ph"
+   },
+   {
+    "key": "return_fan_#_amps",
+    "label_en": "Return Fan # Amps",
+    "label_ar": "أمبير مروحة الراجع #",
+    "group": "return_fan",
+    "phase": "1Ph"
+   },
+   {
+    "key": "supply_fan_#_amps_l1",
+    "label_en": "Supply Fan # Amps L1",
+    "label_ar": "أمبير مروحة التزويد # L1",
+    "group": "supply_fan",
+    "phase": "3Ph"
+   },
+   {
+    "key": "supply_fan_#_amps_l2",
+    "label_en": "Supply Fan # Amps L2",
+    "label_ar": "أمبير مروحة التزويد # L2",
+    "group": "supply_fan",
+    "phase": "3Ph"
+   },
+   {
+    "key": "supply_fan_#_amps_l3",
+    "label_en": "Supply Fan # Amps L3",
+    "label_ar": "أمبير مروحة التزويد # L3",
+    "group": "supply_fan",
+    "phase": "3Ph"
+   },
+   {
+    "key": "extract_fan_#_amps_l1",
+    "label_en": "Extract Fan # Amps L1",
+    "label_ar": "أمبير مروحة الطرد # L1",
+    "group": "extract_fan",
+    "phase": "3Ph"
+   },
+   {
+    "key": "extract_fan_#_amps_l2",
+    "label_en": "Extract Fan # Amps L2",
+    "label_ar": "أمبير مروحة الطرد # L2",
+    "group": "extract_fan",
+    "phase": "3Ph"
+   },
+   {
+    "key": "extract_fan_#_amps_l3",
+    "label_en": "Extract Fan # Amps L3",
+    "label_ar": "أمبير مروحة الطرد # L3",
+    "group": "extract_fan",
+    "phase": "3Ph"
+   },
+   {
+    "key": "return_fan_#_amps_l1",
+    "label_en": "Return Fan # Amps L1",
+    "label_ar": "أمبير مروحة الراجع # L1",
+    "group": "return_fan",
+    "phase": "3Ph"
+   },
+   {
+    "key": "return_fan_#_amps_l2",
+    "label_en": "Return Fan # Amps L2",
+    "label_ar": "أمبير مروحة الراجع # L2",
+    "group": "return_fan",
+    "phase": "3Ph"
+   },
+   {
+    "key": "return_fan_#_amps_l3",
+    "label_en": "Return Fan # Amps L3",
+    "label_ar": "أمبير مروحة الراجع # L3",
+    "group": "return_fan",
+    "phase": "3Ph"
+   },
+   {
+    "key": "refrigerant",
+    "label_en": "Refrigerant Type",
+    "label_ar": "نوع الفريون",
+    "group": "unit"
+   },
+   {
+    "key": "supply_air_temp",
+    "label_en": "Supply Air Temp",
+    "label_ar": "حرارة الهواء المزود",
+    "group": "unit"
+   },
+   {
+    "key": "return_air_temp",
+    "label_en": "Return Air Temp",
+    "label_ar": "حرارة الهواء الراجع",
+    "group": "unit"
+   },
+   {
+    "key": "return_humidity",
+    "label_en": "Return Air Humidity",
+    "label_ar": "رطوبة الهواء الراجع",
+    "group": "unit"
+   },
+   {
+    "key": "supply_humidity",
+    "label_en": "Supply Air Humidity",
+    "label_ar": "رطوبة الهواء المزود",
+    "group": "unit"
+   },
+   {
+    "key": "humidity_setpoint",
+    "label_en": "Humidity Set Point",
+    "label_ar": "ضبط الرطوبة",
+    "group": "unit"
+   },
+   {
+    "key": "filter",
+    "label_en": "Filter Status",
+    "label_ar": "الفالتر",
+    "group": "unit"
+   },
+   {
+    "key": "evaporator_coil",
+    "label_en": "Evaporator Coil",
+    "label_ar": "كويل المبخر",
+    "group": "unit"
+   },
+   {
+    "key": "condenser_coil",
+    "label_en": "Condenser Coil",
+    "label_ar": "كويل الكوندنسر",
+    "group": "unit"
+   },
+   {
+    "key": "drain",
+    "label_en": "Drain",
+    "label_ar": "الدرين",
+    "group": "unit"
+   },
+   {
+    "key": "heaters",
+    "label_en": "Reheat / Heaters",
+    "label_ar": "الهياتر اذا وجدت",
+    "group": "unit"
+   },
+   {
+    "key": "humidistat",
+    "label_en": "Humidistat / Controls",
+    "label_ar": "حساس الرطوبة والتحكم",
+    "group": "unit"
+   }
+  ],
+  "ccu": [
+   {
+    "key": "unit_phase",
+    "label_en": "Power Supply (Phase)",
+    "label_ar": "نوع الكهرباء (فاز)",
+    "group": "unit"
+   },
+   {
+    "key": "voltage",
+    "label_en": "Voltage",
+    "label_ar": "الفولتيه",
+    "group": "unit",
+    "phase": "1Ph"
+   },
+   {
+    "key": "voltage_l1l2",
+    "label_en": "Voltage L1-L2",
+    "label_ar": "الفولتيه L1-L2",
+    "group": "unit",
+    "phase": "3Ph"
+   },
+   {
+    "key": "voltage_l1l3",
+    "label_en": "Voltage L1-L3",
+    "label_ar": "الفولتيه L1-L3",
+    "group": "unit",
+    "phase": "3Ph"
+   },
+   {
+    "key": "voltage_l2l3",
+    "label_en": "Voltage L2-L3",
+    "label_ar": "الفولتيه L2-L3",
+    "group": "unit",
+    "phase": "3Ph"
+   },
+   {
+    "key": "voltage_ln",
+    "label_en": "Voltage L-N (Neutral)",
+    "label_ar": "الفولتيه فاز - نيوترل",
+    "group": "unit",
+    "phase": "3Ph"
+   },
+   {
+    "key": "phase_rotation",
+    "label_en": "Phase Rotation",
+    "label_ar": "اتجاه الفازات",
+    "group": "unit"
+   },
+   {
+    "key": "electrical_panel",
+    "label_en": "Electrical Panel Status",
+    "label_ar": "لوحة الكهرباء",
+    "group": "unit"
+   },
+   {
+    "key": "machine_load",
+    "label_en": "Machine Load (%)",
+    "label_ar": "نسبة تحميل المكينة",
+    "group": "unit"
+   },
+   {
+    "key": "compressor_count",
+    "label_en": "Number of Compressors",
+    "label_ar": "عدد الضواغط",
+    "group": "unit"
+   },
+   {
+    "key": "circuit_count",
+    "label_en": "Number of Circuits/Cycles",
+    "label_ar": "عدد الدوائر",
+    "group": "unit"
+   },
+   {
+    "key": "compressor_#_amps",
+    "label_en": "Compressor # Amps",
+    "label_ar": "أمبير الضاغط #",
+    "group": "compressor",
+    "phase": "1Ph"
+   },
+   {
+    "key": "compressor_#_amps_l1",
+    "label_en": "Compressor # Amps L1",
+    "label_ar": "أمبير الضاغط # L1",
+    "group": "compressor",
+    "phase": "3Ph"
+   },
+   {
+    "key": "compressor_#_amps_l2",
+    "label_en": "Compressor # Amps L2",
+    "label_ar": "أمبير الضاغط # L2",
+    "group": "compressor",
+    "phase": "3Ph"
+   },
+   {
+    "key": "compressor_#_amps_l3",
+    "label_en": "Compressor # Amps L3",
+    "label_ar": "أمبير الضاغط # L3",
+    "group": "compressor",
+    "phase": "3Ph"
+   },
+   {
+    "key": "circuit_#_suction_pressure",
+    "label_en": "Circuit # Suction Pressure",
+    "label_ar": "ضغط السحب - دائرة #",
+    "group": "circuit"
+   },
+   {
+    "key": "circuit_#_discharge_pressure",
+    "label_en": "Circuit # Discharge Pressure",
+    "label_ar": "ضغط الضخ - دائرة #",
+    "group": "circuit"
+   },
+   {
+    "key": "fan_amps",
+    "label_en": "Fan Motor Amps",
+    "label_ar": "أمبير محرك المروحة",
+    "group": "unit",
+    "phase": "1Ph"
+   },
+   {
+    "key": "fan_amps_l1",
+    "label_en": "Fan Motor Amps L1",
+    "label_ar": "أمبير محرك المروحة L1",
+    "group": "unit",
+    "phase": "3Ph"
+   },
+   {
+    "key": "fan_amps_l2",
+    "label_en": "Fan Motor Amps L2",
+    "label_ar": "أمبير محرك المروحة L2",
+    "group": "unit",
+    "phase": "3Ph"
+   },
+   {
+    "key": "fan_amps_l3",
+    "label_en": "Fan Motor Amps L3",
+    "label_ar": "أمبير محرك المروحة L3",
+    "group": "unit",
+    "phase": "3Ph"
+   },
+   {
+    "key": "refrigerant",
+    "label_en": "Refrigerant Type",
+    "label_ar": "نوع الفريون",
+    "group": "unit"
+   },
+   {
+    "key": "supply_air_temp",
+    "label_en": "Supply Air Temp",
+    "label_ar": "حرارة الهواء المزود",
+    "group": "unit"
+   },
+   {
+    "key": "return_air_temp",
+    "label_en": "Return Air Temp",
+    "label_ar": "حرارة الهواء الراجع",
+    "group": "unit"
+   },
+   {
+    "key": "temp_setpoint",
+    "label_en": "Temperature Set Point",
+    "label_ar": "ضبط الحرارة",
+    "group": "unit"
+   },
+   {
+    "key": "return_humidity",
+    "label_en": "Return Air Humidity",
+    "label_ar": "رطوبة الهواء الراجع",
+    "group": "unit"
+   },
+   {
+    "key": "humidity_setpoint",
+    "label_en": "Humidity Set Point",
+    "label_ar": "ضبط الرطوبة",
+    "group": "unit"
+   },
+   {
+    "key": "filter",
+    "label_en": "Filter Status",
+    "label_ar": "الفالتر",
+    "group": "unit"
+   },
+   {
+    "key": "fan_belt",
+    "label_en": "Fan Belt",
+    "label_ar": "سير المروحة",
+    "group": "unit"
+   },
+   {
+    "key": "evaporator_coil",
+    "label_en": "Evaporator Coil",
+    "label_ar": "كويل المبخر",
+    "group": "unit"
+   },
+   {
+    "key": "condenser_coil",
+    "label_en": "Condenser Coil",
+    "label_ar": "كويل الكوندنسر",
+    "group": "unit"
+   },
+   {
+    "key": "humidifier",
+    "label_en": "Humidifier",
+    "label_ar": "المرطب",
+    "group": "unit"
+   },
+   {
+    "key": "heaters",
+    "label_en": "Reheat / Heaters",
+    "label_ar": "الهياتر اذا وجدت",
+    "group": "unit"
+   },
+   {
+    "key": "drain",
+    "label_en": "Drain / Condensate Pump",
+    "label_ar": "الدرين ومضخة التصريف",
+    "group": "unit"
+   },
+   {
+    "key": "leak_detector",
+    "label_en": "Water Leak Detector",
+    "label_ar": "حساس تسرب الماء",
+    "group": "unit"
+   },
+   {
+    "key": "active_alarms",
+    "label_en": "Active Alarms",
+    "label_ar": "الإنذارات الفعالة",
+    "group": "unit"
+   },
+   {
+    "key": "controls",
+    "label_en": "Controller / Display",
+    "label_ar": "لوحة التحكم والشاشة",
+    "group": "unit"
+   }
+  ],
+  "vrf": [
+   {
+    "key": "outdoor_amps",
+    "label_en": "Outdoor Unit Amps",
+    "label_ar": "أمبير الوحدة الخارجية",
+    "group": "unit"
+   },
+   {
+    "key": "high_pressure",
+    "label_en": "High Pressure",
+    "label_ar": "الضغط العالي",
+    "group": "unit"
+   },
+   {
+    "key": "low_pressure",
+    "label_en": "Low Pressure",
+    "label_ar": "الضغط المنخفض",
+    "group": "unit"
+   },
+   {
+    "key": "refrigerant",
+    "label_en": "Refrigerant Type",
+    "label_ar": "نوع الفريون",
+    "group": "unit"
+   },
+   {
+    "key": "indoor_count",
+    "label_en": "Indoor Unit Count",
+    "label_ar": "عدد الوحدات الداخلية",
+    "group": "unit"
+   },
+   {
+    "key": "indoor_status",
+    "label_en": "Indoor Unit Status",
+    "label_ar": "حالة الوحدات الداخلية",
+    "group": "unit"
+   }
+  ],
+  "cooling_tower": [
+   {
+    "key": "water_in_temp",
+    "label_en": "Water In Temp",
+    "label_ar": "حرارة الماء الداخل",
+    "group": "unit"
+   },
+   {
+    "key": "water_out_temp",
+    "label_en": "Water Out Temp",
+    "label_ar": "حرارة الماء الخارج",
+    "group": "unit"
+   },
+   {
+    "key": "fan_amps",
+    "label_en": "Fan Amps",
+    "label_ar": "أمبير المروحة",
+    "group": "unit"
+   },
+   {
+    "key": "basin_level",
+    "label_en": "Basin Water Level",
+    "label_ar": "مستوى الماء",
+    "group": "unit"
+   },
+   {
+    "key": "tds",
+    "label_en": "TDS",
+    "label_ar": "TDS",
+    "group": "unit"
+   },
+   {
+    "key": "ph",
+    "label_en": "pH",
+    "label_ar": "pH",
+    "group": "unit"
+   },
+   {
+    "key": "conductivity",
+    "label_en": "Conductivity",
+    "label_ar": "الناقلية",
+    "group": "unit"
+   }
+  ],
+  "boiler": [
+   {
+    "key": "flow_temp",
+    "label_en": "Flow Temp",
+    "label_ar": "حرارة الذهاب",
+    "group": "unit"
+   },
+   {
+    "key": "return_temp",
+    "label_en": "Return Temp",
+    "label_ar": "حرارة الرجوع",
+    "group": "unit"
+   },
+   {
+    "key": "gas_pressure",
+    "label_en": "Gas Pressure",
+    "label_ar": "ضغط الغاز",
+    "group": "unit"
+   },
+   {
+    "key": "flue_gas_temp",
+    "label_en": "Flue Gas Temp",
+    "label_ar": "حرارة غازات العادم",
+    "group": "unit"
+   },
+   {
+    "key": "burner_amps",
+    "label_en": "Burner Amps",
+    "label_ar": "أمبير الموقد",
+    "group": "unit"
+   },
+   {
+    "key": "co_level",
+    "label_en": "CO Level",
+    "label_ar": "CO Level",
+    "group": "unit"
+   },
+   {
+    "key": "co2_level",
+    "label_en": "CO2 Level",
+    "label_ar": "CO2 Level",
+    "group": "unit"
+   }
+  ]
+ }
+}

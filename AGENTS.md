@@ -42,7 +42,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .claude\skills\restart-app\r
 
 Run this restart after every change to code, templates or static files. The page does not reload by itself.
 
-Tests (152 at the time of writing; all must pass before you say a change is done):
+Tests (153 at the time of writing; all must pass before you say a change is done):
 
 ```
 %LOCALAPPDATA%\HvacManager\venv\Scripts\python.exe manage.py test core --noinput
@@ -97,6 +97,7 @@ The contract is in `APP_SYNC.md`. Keep it up to date when you change an endpoint
 - A report whose unit is known becomes a completed visit. Otherwise it waits under Maintenance Reports > Daily reports until someone adds the site and unit.
 - A serial number alone never picks a unit: the model number must match too.
 - Every report is kept whole in `FieldReport.data`. The readings are whatever the app sent; boxes can be added or deleted in the app, so never assume a fixed list of readings.
+- Report forms (the boxes a new phone report starts with) are edited on the website per equipment type and per unit (`ReportForm`, `core/report_forms.py`), sent in the sync and updated from finished reports unless the website changed them after the report started. The standard boxes come from the app via `node tools/export_form_catalog.mjs <app folder>` into `core/report_form_catalog.json`; rerun it when the app's built-in forms change. The app side is described in `APP_PROMPT_REPORT_FORMS.md`.
 
 ## 7. Reading limits and superheat
 

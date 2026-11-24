@@ -20,6 +20,7 @@ from django.views.decorators.http import require_GET, require_POST
 
 from ..forms import IMAGE_EXTENSIONS, validate_upload
 from ..models import AlarmCode, Attachment, DocumentAssignment, FieldReport, User, Visit
+from ..report_forms import report_type, sync_payload, update_from_report
 from ..services import clients_for, documents_for, new_attachment, notify_report, record, units_for, visit_from_report, visits_for
 from .documents import _serve, alarm_ask
 from .general import LOCK_SECONDS, MAX_LOGIN_FAILURES, client_ip
@@ -115,13 +116,15 @@ def api_sync(request):
                     for c in clients_for(user).filter(pk__in=client_ids).select_related("country")],
         "units": [{"id": u.pk, "name_en": u.name_en, "name_ar": u.name_ar, "client_id": u.client_id, "category": u.category.name_en, "subtype": u.subtype.name_en if u.subtype else "",
                    "manufacturer": u.model.manufacturer.name_en, "model": u.model.model_number, "serial_number": u.serial_number, "project": u.project, "location": u.location,
-                   "qr_token": u.qr_token, "url": base + u.get_absolute_url(), "document_ids": unit_docs(u)} for u in units],
+                   "qr_token": u.qr_token, "url": base + u.get_absolute_url(), "document_ids": unit_docs(u), "report_type": report_type(u)} for u in units],
         "documents": [{"id": d.pk, "name_en": d.name_en, "name_ar": d.name_ar, "type": d.doc_type.name_en, "language": d.language,
                        "url": base + reverse("document_file", args=[d.pk]), "file_name": d.original_name, "size": d.size} for d in docs.values()],
         "visits": [{"id": v.pk, "number": v.number, "unit_id": v.unit_id, "client_id": v.client_id, "scheduled_date": v.scheduled_date.isoformat(), "type": v.visit_type,
                     "overdue": v.scheduled_date < today, "status": v.status, "assigned_to_me": v.technician_id == user.pk,
                     "contract": {"id": v.contract_id, "number": v.contract.number, "title": v.contract.title} if v.contract_id else None}
                    for v in open_visits],
+        # The forms new reports start with (see APP_SYNC.md): changed type forms, and the forms of these units.
+        "report_forms": sync_payload(units),
     })
 
 
@@ -227,6 +230,9 @@ def api_report(request):
                 report = FieldReport.objects.create(visit=owner, **kept)
                 answer = {"visit_id": owner.pk, "number": owner.number, "url": _base(request) + owner.get_absolute_url(), "pending": False}
                 files = {"visit": owner}
+                form_change = update_from_report(unit, data, user)  # the unit's report form follows the finished report, unless the website changed it since
+                if form_change:
+                    record(user, "report_form_from_app", unit, f"{report_id}: {form_change}")
             else:
                 # The site or unit is not in the database: keep the whole report under Daily Reports until someone adds them.
                 owner = report = FieldReport.objects.create(**kept)

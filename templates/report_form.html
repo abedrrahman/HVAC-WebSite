@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}{{ title }} · {{ subject }}{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>{{ title }}</h1><div class="sub">{{ subject }}{% if unit %} · {% t type_label %}{% endif %}</div></div>
+  <div class="actions">
+    {% if unit and type_url %}<a class="btn" href="{{ type_url }}">{% t "Form for all units of this type" %}</a>{% endif %}
+    <a class="btn" href="{{ back }}">{% t "Back" %}</a>
+  </div>
+</div>
+
+<div class="note">
+  {% if unit %}{% if own %}{% t "This unit has its own form. Changes to its type's form do not reach it until you go back to the default." %}{% else %}{% t "This unit follows the form of its type. Change anything below to give it its own form." %}{% endif %}
+  {% else %}{% t "This form is used for every unit of this type, except units that have their own form." %}{% endif %}
+  {% t "Reports already open on a phone keep their form; new reports use this one after the phone's next sync." %}
+  {% t "# stands for the number of the compressor, circuit or fan." %}
+</div>
+{% if form and form.updated_at %}<p class="meta">{% t "Last changed" %}: {{ form.updated_at|date:"j M Y H:i" }}{% if form.updated_by %} · {{ form.updated_by }}{% endif %} · {% if form.source == "app" %}{% t "from a finished phone report" %}{% else %}{% t "on the website" %}{% endif %}</p>{% endif %}
+
+<form method="post" class="report-form-editor">{% csrf_token %}
+  <input type="hidden" name="rows" value="{{ rows|length }}"><input type="hidden" name="materials" value="{{ materials|length }}">
+
+  <div class="section-title">{% t "Boxes" %}</div>
+  <div class="card flush"><div class="table-wrap"><table>
+    <thead><tr><th>{% t "Order" %}</th><th>{% t "Show" %}</th><th>{% t "Name in English" %}</th><th>{% t "Name in Arabic" %}</th><th></th></tr></thead>
+    <tbody>
+    {% for r in rows %}<tr{% if r.hidden %} class="muted-row"{% endif %}>
+      <td><input type="number" name="r{{ forloop.counter0 }}-pos" value="{{ forloop.counter }}" step="1" min="1" class="order-input" aria-label="{% t 'Order' %}"></td>
+      <td><input type="checkbox" name="r{{ forloop.counter0 }}-show"{% if not r.hidden %} checked{% endif %} aria-label="{% t 'Show' %}"></td>
+      <td><input type="hidden" name="r{{ forloop.counter0 }}-key" value="{{ r.key }}"><input type="hidden" name="r{{ forloop.counter0 }}-custom" value="{% if r.custom %}1{% else %}0{% endif %}"><input type="text" name="r{{ forloop.counter0 }}-en" value="{{ r.label_en }}" maxlength="120" dir="ltr"></td>
+      <td><input type="text" name="r{{ forloop.counter0 }}-ar" value="{{ r.label_ar }}" maxlength="120" dir="rtl" lang="ar"></td>
+      <td>{% if r.custom %}<label class="inline-check"><input type="checkbox" name="r{{ forloop.counter0 }}-delete"> {% t "Delete" %}</label>{% else %}<span class="meta">{% t "Standard" %}{% if r.phase == "3Ph" %} · {% t "three-phase only" %}{% elif r.phase == "1Ph" %} · {% t "single-phase only" %}{% endif %}</span>{% endif %}</td>
+    </tr>{% endfor %}
+    {% for j in new_rows %}<tr class="new-row">
+      <td><input type="number" name="n{{ j }}-pos" step="1" min="1" class="order-input" placeholder="{{ rows|length|add:j|add:1 }}" aria-label="{% t 'Order' %}"></td>
+      <td></td>
+      <td><input type="text" name="n{{ j }}-en" maxlength="120" dir="ltr" placeholder="{% t 'New box' %}"></td>
+      <td><input type="text" name="n{{ j }}-ar" maxlength="120" dir="rtl" lang="ar" placeholder="{% t 'New box' %}"></td>
+      <td></td>
+    </tr>{% endfor %}
+    </tbody>
+  </table></div></div>
+  <p class="meta">{% t "Change the order numbers to move boxes; untick Show to switch a standard box off." %}</p>
+
+  <div class="section-title">{% t "Parts the report starts with" %}</div>
+  <div class="card flush"><div class="table-wrap"><table>
+    <thead><tr><th>{% t "Description" %}</th><th>{% t "Unit" %}</th></tr></thead>
+    <tbody>
+    {% for m in materials %}<tr><td><input type="text" name="m{{ forloop.counter0 }}-d" value="{{ m.description }}" maxlength="200"></td><td><input type="text" name="m{{ forloop.counter0 }}-u" value="{{ m.unit }}" maxlength="30"></td></tr>{% endfor %}
+    {% for i in material_new %}<tr class="new-row"><td><input type="text" name="m{{ i }}-d" maxlength="200" placeholder="{% t 'New part' %}"></td><td><input type="text" name="m{{ i }}-u" maxlength="30"></td></tr>{% endfor %}
+    </tbody>
+  </table></div></div>
+
+  {% if show_setup %}
+  <div class="section-title">{% t "Unit setup" %}</div>
+  <div class="card"><div class="setup-grid">
+    <div class="field"><label for="s-phase">{% t "Power Supply (Phase)" %}</label><select id="s-phase" name="s-phase"><option value="">{% t "Phone decides" %}</option>{% for c in choices.phase %}<option{% if setup.phase == c %} selected{% endif %}>{{ c }}</option>{% endfor %}</select></div>
+    {% for key, top in counts %}<div class="field"><label for="s-{{ key }}">{% if key == "compressors" %}{% t "Number of Compressors" %}{% elif key == "circuits" %}{% t "Number of Circuits/Cycles" %}{% elif key == "supply_fans" %}{% t "Number of Supply Fans" %}{% elif key == "extract_fans" %}{% t "Number of Extract Fans" %}{% else %}{% t "Number of Return Fans" %}{% endif %}</label>
+      <select id="s-{{ key }}" name="s-{{ key }}"><option value="">{% t "Phone decides" %}</option>{% for n in count_range %}{% if n <= top %}<option value="{{ n }}"{% if setup|dict_get:key == n %} selected{% endif %}>{{ n }}</option>{% endif %}{% endfor %}</select></div>{% endfor %}
+    <div class="field"><label for="s-refrigerant">{% t "Refrigerant Type" %}</label><select id="s-refrigerant" name="s-refrigerant"><option value="">{% t "Phone decides" %}</option>{% for c in choices.refrigerant %}<option{% if setup.refrigerant == c %} selected{% endif %}>{{ c }}</option>{% endfor %}</select></div>
+    <div class="field"><label for="s-temp_unit">{% t "Temperature unit" %}</label><select id="s-temp_unit" name="s-temp_unit"><option value="">{% t "Phone decides" %}</option>{% for c in choices.temp_unit %}<option value="{{ c }}"{% if setup.temp_unit == c %} selected{% endif %}>°{{ c }}</option>{% endfor %}</select></div>
+    <div class="field"><label for="s-pressure_unit">{% t "Pressure unit" %}</label><select id="s-pressure_unit" name="s-pressure_unit"><option value="">{% t "Phone decides" %}</option>{% for c in choices.pressure_unit %}<option{% if setup.pressure_unit == c %} selected{% endif %}>{{ c }}</option>{% endfor %}</select></div>
+  </div></div>
+  {% endif %}
+
+  <div class="form-actions"><button class="btn primary">{% t "Save" %}</button><a class="btn" href="{{ back }}">{% t "Cancel" %}</a></div>
+</form>
+
+{% if changed %}
+<form method="post" action="{{ request.path }}reset/" class="form-actions" data-confirm="{% t 'Go back to the default form? New reports will use the default; reports already open keep theirs.' %}">{% csrf_token %}
+  <button class="btn">{% if unit %}{% t "Back to the form of its type" %}{% else %}{% t "Back to the phone's built-in form" %}{% endif %}</button>
+</form>
+{% endif %}
+{% endblock %}

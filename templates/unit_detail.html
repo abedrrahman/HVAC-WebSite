@@ -14,6 +14,7 @@
     {% if request.user|can:"equipment.edit" %}
     <a class="btn" href="{% url 'unit_edit' unit.pk %}">{% icon "edit" 16 %} {% t "Edit" %}</a>
     <a class="btn" href="{% url 'unit_specs' unit.pk %}">{% t "Edit Technical Information" %}</a>
+    {% if has_report_form %}<a class="btn" href="{% url 'unit_report_form' unit.pk %}">{% t "Report form" %}{% if unit_own_form %} ✓{% endif %}</a>{% endif %}
     <a class="btn" href="{% url 'unit_limits' unit.pk %}">{% t "Reading limits" %}{% if unit.reading_limits %} ✓{% endif %}</a>
     {% endif %}
     {% if request.user|can:"visits.manage" %}<a class="btn" href="{% url 'visit_new' %}?unit={{ unit.pk }}">{% icon "plus" 16 %} {% t "Add Visit" %}</a>{% endif %}

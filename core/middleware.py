@@ -75,7 +75,7 @@ def shell_context(request):
                 "document": "document_list", "contract": "contract_list", "schedule": "contract_list",
                 "visit": "visit_list", "maintenance": "maintenance_reports", "report": "report_list", "user": "user_list", "role": "user_list",
                 "country": "settings", "doctype": "settings", "activity": "settings"}
-    active = prefixes.get((current or "").split("_")[0], current)
+    active = "settings" if (current or "").startswith("report_form") else prefixes.get((current or "").split("_")[0], current)
     return {
         "nav": [{"icon": i, "label": l, "url": reverse(u), "active": u == active, "short": BOTTOM_NAV.get(u)} for i, l, u, p in NAV if not p or request.user.has(p)],
         "unread_count": Notification.objects.filter(user=request.user, read_at__isnull=True).count(),

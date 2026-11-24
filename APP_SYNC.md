@@ -23,6 +23,21 @@ Answer (JSON): `synced_at`, `clients`, `units`, `documents`, `visits`.
   - `assigned_to_me` is true when this user is that technician: these are the visits for the phone's "My visits" dashboard.
   - `contract` is `{id, number, title}` or null. Visits with the same contract id belong together and can be signed once for all units.
   - Order: visits sent to this user (`in_progress` and `assigned_to_me`) first, then the rest oldest first. The first visit listed for a unit is the one a report on that unit should close.
+- `units[].report_type`: the phone's equipment type for the unit (`chiller`, `ahu`, `fcu`, `split`, `vrf`, `rtu`, `ccu`, `dehumidifier`, `cooling_tower`, `boiler` or `custom`), the same rule as the app's `machineTypeFor`.
+- `report_forms`: the report forms changed on the website. Without an entry the phone uses its own built-in form.
+  - `types`: `{ "<report_type>": { rows, materials, changed_at } }`, the default form of every unit of that type.
+  - `units`: `{ "<unit id>": { report_type, rows, materials, setup, changed_at } }`, one unit's own form. It wins over its type's.
+  - `rows`: the boxes in order, `[{ key, label_en, label_ar, hidden, custom }]`, or `null` (follow the type, or the built-in form).
+    Standard boxes use the app's keys; a compressor, circuit or fan box has `#` for its number in the key and the names
+    (`compressor_#_amps`, `Compressor # Amps`): replace `#` with 1, 2, 3 for each one the unit has. `hidden`: leave the box out.
+    `custom`: a box added on the website or the phone (its key is `custom_...`). A standard box the list does not mention stays where the built-in form puts it.
+  - `materials`: `[{ description, unit }]` the parts list starts with, or `null`.
+  - `setup` (units only): any of `phase` (`1Ph`/`3Ph`), `compressors`, `circuits`, `supply_fans`, `extract_fans`, `return_fans` (numbers),
+    `refrigerant`, `temp_unit` (`C`/`F`/`K`), `pressure_unit` (`bar`/`psi`/`kPa`/`MPa`). A missing key is left to the phone.
+  - `changed_at`: when the form last changed. A new report uses the newest of the website's form and the unit's own form on the phone.
+    A report already open keeps its boxes.
+- The list of standard boxes per type is copied from the app into `core/report_form_catalog.json` by `node tools/export_form_catalog.mjs <app folder>`.
+  Run it again whenever the app's built-in forms change.
 - A user without "See all records" gets only the units of visits assigned to them.
 - The whole list is sent every time; replace the phone's copy with it.
 
@@ -47,6 +62,10 @@ Multipart form:
 - `pdf`: the exported PDF (optional but expected)
 - `photo`: site photos, repeatable, up to 30
 - `signature`: the signatures as PNG or JPEG pictures, repeatable, up to 4. Name the files `signature_technician.png` and `signature_client.png`; the website prints them on the approved report.
+- `created_at` (when the report was started) and `form`: the form the finished report ended with, `{ rows, materials, setup }` in the shapes of
+  `report_forms` above (full `rows` list, including hidden standard boxes, with the report's own names and order). The website keeps it as the
+  unit's form for its next report, unless the form was changed on the website after `created_at`: then the website's change wins.
+  A report's readings are always kept, whatever happens to the form.
 - For a contract signed once for all its units: send each unit's report separately with the same signature files, and put the same `contract_batch_id` (any text the phone makes up) in each report's JSON.
 
 Answer: `{"visit_id", "number", "url", "already_uploaded"}` — 201 the first time, 200 when the same `id` is sent again.

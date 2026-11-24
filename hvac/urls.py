@@ -1,6 +1,6 @@
 from django.urls import path
 
-from core.views import api, catalog as c, documents as d, general as g, maintenance as m, reports as r
+from core.views import api, catalog as c, documents as d, general as g, maintenance as m, report_forms as rf, reports as r
 
 urlpatterns = [
     path("api/login/", api.api_login, name="api_login"),
@@ -134,6 +134,11 @@ urlpatterns = [
     path("settings/limits/", g.reading_limits, name="reading_limits"),
     path("models/<int:pk>/limits/", g.reading_limits, {"scope": "model"}, name="model_limits"),
     path("equipment/<int:pk>/limits/", g.reading_limits, {"scope": "unit"}, name="unit_limits"),
+    path("settings/report-forms/", rf.report_forms, name="report_forms"),
+    path("settings/report-forms/<str:rtype>/", rf.report_form_edit, name="report_form_type"),
+    path("settings/report-forms/<str:rtype>/reset/", rf.report_form_reset, name="report_form_type_reset"),
+    path("equipment/<int:pk>/report-form/", rf.report_form_edit, name="unit_report_form"),
+    path("equipment/<int:pk>/report-form/reset/", rf.report_form_reset, name="unit_report_form_reset"),
     path("countries/new/", g.country_edit, name="country_new"),
     path("countries/<int:pk>/", g.country_edit, name="country_edit"),
     path("document-types/new/", g.doctype_edit, name="doctype_new"),

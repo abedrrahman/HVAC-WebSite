@@ -16,7 +16,8 @@ from django.utils.html import format_html
 
 from .. import forms as f
 from ..i18n import t
-from ..models import (Attachment, Category, Client, Country, EquipmentModel, FieldDefinition, Manufacturer, Subtype, Unit)
+from ..models import (Attachment, Category, Client, Country, EquipmentModel, FieldDefinition, Manufacturer, ReportForm, Subtype, Unit)
+from ..report_forms import TYPE_LABELS, report_type
 from ..services import (clients_for, contracts_for, documents_for, new_attachment, reassign_category, reassign_subtype, record, spec_rows,
                         sync_unit_contracts, units_for, visits_for)
 from .common import (action, active_badge, badge, form_page, link, list_page, post_only, requires, saved, toggle_active, try_delete)
@@ -211,6 +212,8 @@ def unit_detail(request, pk):
         "next_visit": today_open.first(), "upcoming_visits": today_open[:20], "history": history,
         "contract_history": unit.contract_links.select_related("contract").order_by("-added_at") if u.has("contracts.view") else [],
         "photos": photos, "photo_form": f.AttachmentForm(kinds=[Attachment.Kind.PHOTO, Attachment.Kind.NAMEPLATE, Attachment.Kind.INSTALLATION, Attachment.Kind.OTHER], images_only=True),
+        "has_report_form": report_type(unit) in TYPE_LABELS,
+        "unit_own_form": ReportForm.objects.filter(Q(rows__isnull=False) | Q(materials__isnull=False), unit=unit).exists(),
     })
 
 

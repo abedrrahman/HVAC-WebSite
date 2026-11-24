@@ -555,6 +555,63 @@ class PhoneApp(Base):
         page = self.client.get(reverse("model_detail", args=[self.lxv.pk]))
         self.assertEqual([d.pk for d in page.context["documents"]], [shared.pk])
 
+    def test_report_forms_are_changed_on_the_web_reach_the_phone_and_follow_finished_reports(self):
+        from .models import ReportForm
+        from .report_forms import default_rows
+        self.client.force_login(self.engineer)
+        self.assertEqual(self.client.get(reverse("report_form_type", args=["chiller"])).status_code, 403)  # every chiller's form needs Settings
+        self.client.force_login(self.admin)
+        page = self.client.get(reverse("report_form_type", args=["chiller"]))
+        rows = page.context["rows"]
+        self.assertEqual([r["key"] for r in rows], [r["key"] for r in default_rows("chiller")])  # the phone's built-in boxes to start from
+        post = {"rows": len(rows), "materials": 0}
+        for i, r in enumerate(rows):
+            post.update({f"r{i}-key": r["key"], f"r{i}-custom": "0", f"r{i}-pos": i + 1, f"r{i}-en": r["label_en"], f"r{i}-ar": r["label_ar"], f"r{i}-show": "on"})
+        oil = next(i for i, r in enumerate(rows) if r["key"] == "oil_pressure")
+        post.update({f"r{oil}-en": "Oil Pressure (bar)", f"r{oil}-pos": "0.5", "n0-en": "Vibration", "n0-ar": "الاهتزاز", "m0-d": "Oil filter", "m0-u": "pcs"})
+        del post[f"r{rows.index(next(r for r in rows if r['key'] == 'machine_load'))}-show"]  # switch a standard box off
+        self.client.post(reverse("report_form_type", args=["chiller"]), post)
+        form = ReportForm.objects.get(report_type="chiller", unit__isnull=True)
+        self.assertEqual((form.rows[0]["label_en"], form.rows[-1]["label_en"], form.rows[-1]["custom"], form.materials), ("Oil Pressure (bar)", "Vibration", True, [{"description": "Oil filter", "unit": "pcs"}]))
+        self.assertTrue(next(r for r in form.rows if r["key"] == "machine_load")["hidden"])
+        self.assertIn("renamed: Oil Pressure → Oil Pressure (bar)", ActivityLog.objects.get(action="report_form_changed").details)
+
+        # A unit follows its type until it is given something of its own; going back to the default undoes that.
+        unit_url = reverse("unit_report_form", args=[self.c1.pk])
+        same = self.client.get(unit_url).context
+        post = {"rows": len(same["rows"]), "materials": 1, "m0-d": "Oil filter", "m0-u": "pcs", "s-compressors": "2", "s-phase": "3Ph"}
+        for i, r in enumerate(same["rows"]):
+            post.update({f"r{i}-key": r["key"], f"r{i}-custom": "1" if r["custom"] else "0", f"r{i}-pos": i + 1, f"r{i}-en": r["label_en"], f"r{i}-ar": r["label_ar"]})
+            if not r["hidden"]:
+                post[f"r{i}-show"] = "on"
+        self.client.post(unit_url, post)
+        own = ReportForm.objects.get(unit=self.c1)
+        self.assertEqual((own.rows, own.materials, own.setup), (None, None, {"phase": "3Ph", "compressors": 2}))  # same boxes as the type: still follows it
+        self.client.post(unit_url, {**post, "n0-en": "Pump vibration"})
+        own.refresh_from_db()
+        self.assertEqual(own.rows[-1]["label_en"], "Pump vibration")
+        sync = self.client.get(reverse("api_sync"), **self.token("eng")).json()
+        self.assertEqual((sync["units"][0]["report_type"] in ("chiller", "ahu"), sync["report_forms"]["types"]["chiller"]["rows"][0]["label_en"],
+                          sync["report_forms"]["units"][str(self.c1.pk)]["rows"][-1]["label_en"]), (True, "Oil Pressure (bar)", "Pump vibration"))
+        self.client.force_login(self.admin)
+        self.client.post(unit_url + "reset/")
+        own.refresh_from_db()
+        self.assertEqual((own.rows, own.setup["compressors"]), (None, 2))  # back to the type's boxes; the unit's setup stays
+
+        # A finished phone report brings its form back, unless the website changed the form after the report started.
+        Visit.objects.create(unit=self.c1, client=self.client_a, scheduled_date=self.today, technician=self.tech)
+        phone_rows = [*ReportForm.objects.get(report_type="chiller").rows, {"key": "custom_ab12", "label_en": "Fan belt", "label_ar": "سير المروحة", "hidden": False, "custom": True}]
+        report = lambda rid, started: {"id": rid, "unit_id": self.c1.pk, "created_at": started.isoformat(),
+                                        "form": {"rows": phone_rows, "materials": [{"description": "Oil filter", "unit": "pcs"}], "setup": {"compressors": 3, "refrigerant": "R-410A"}}}
+        old = report("r-f1", own.web_changed_at - timedelta(hours=1))
+        self.client.post(reverse("api_report"), {"report": json.dumps(old)}, **self.token("tech"))
+        own.refresh_from_db()
+        self.assertEqual((own.rows, own.setup["compressors"]), (None, 2))  # started before the website's change: the website wins
+        Visit.objects.create(unit=self.c1, client=self.client_a, scheduled_date=self.today, technician=self.tech)
+        self.client.post(reverse("api_report"), {"report": json.dumps(report("r-f2", timezone.now() + timedelta(minutes=1)))}, **self.token("tech"))
+        own.refresh_from_db()
+        self.assertEqual((own.rows[-1]["label_en"], own.setup, own.source), ("Fan belt", {"refrigerant": "R-410A", "compressors": 3}, "app"))
+
     def test_report_for_a_unit_out_of_scope_waits_and_touches_nothing(self):
         Visit.objects.create(unit=self.c1, client=self.client_a, scheduled_date=self.today, technician=self.tech)
         r = self.client.post(reverse("api_report"), {"report": json.dumps({"id": "r-2", "unit_id": self.b1.pk})}, **self.token("tech"))
