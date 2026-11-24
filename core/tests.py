@@ -612,6 +612,24 @@ class PhoneApp(Base):
         own.refresh_from_db()
         self.assertEqual((own.rows[-1]["label_en"], own.setup, own.source), ("Fan belt", {"refrigerant": "R-410A", "compressors": 3}, "app"))
 
+    def test_one_report_form_is_saved_for_several_units_of_a_type(self):
+        from .models import ReportForm
+        self.client.force_login(self.engineer)
+        url = reverse("report_form_units", args=["chiller"])
+        picks = self.client.get(url).context["groups"]
+        self.assertEqual({u.pk for us in picks.values() for u in us} >= {self.c1.pk, self.c2.pk}, True)
+        self.assertNotIn(self.a1.pk, {u.pk for us in picks.values() for u in us})  # an AHU is not offered on the chiller list
+        page = self.client.get(url, {"units": [self.c1.pk, self.c2.pk, self.a1.pk]}).context
+        self.assertEqual([u.pk for u in page["multi"]], [self.c1.pk, self.c2.pk])
+        post = {"units": [self.c1.pk, self.c2.pk], "rows": len(page["rows"]), "materials": 0, "n0-en": "Belt tension"}
+        for i, r in enumerate(page["rows"]):
+            post.update({f"r{i}-key": r["key"], f"r{i}-custom": "0", f"r{i}-pos": i + 1, f"r{i}-en": r["label_en"], f"r{i}-ar": r["label_ar"], f"r{i}-show": "on"})
+        self.client.post(url, post)
+        forms = {f.unit_id: f for f in ReportForm.objects.filter(unit__in=[self.c1, self.c2])}
+        self.assertEqual([forms[u].rows[-1]["label_en"] for u in (self.c1.pk, self.c2.pk)], ["Belt tension", "Belt tension"])
+        self.client.post(url, {"units": [self.c1.pk, self.c2.pk], "reset": "1"})
+        self.assertFalse(ReportForm.objects.filter(unit__in=[self.c1, self.c2], rows__isnull=False).exists())  # both follow the chiller form again
+
     def test_report_for_a_unit_out_of_scope_waits_and_touches_nothing(self):
         Visit.objects.create(unit=self.c1, client=self.client_a, scheduled_date=self.today, technician=self.tech)
         r = self.client.post(reverse("api_report"), {"report": json.dumps({"id": "r-2", "unit_id": self.b1.pk})}, **self.token("tech"))

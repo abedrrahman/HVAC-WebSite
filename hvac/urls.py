@@ -136,6 +136,7 @@ urlpatterns = [
     path("equipment/<int:pk>/limits/", g.reading_limits, {"scope": "unit"}, name="unit_limits"),
     path("settings/report-forms/", rf.report_forms, name="report_forms"),
     path("settings/report-forms/<str:rtype>/", rf.report_form_edit, name="report_form_type"),
+    path("settings/report-forms/<str:rtype>/units/", rf.report_form_units, name="report_form_units"),
     path("settings/report-forms/<str:rtype>/reset/", rf.report_form_reset, name="report_form_type_reset"),
     path("equipment/<int:pk>/report-form/", rf.report_form_edit, name="unit_report_form"),
     path("equipment/<int:pk>/report-form/reset/", rf.report_form_reset, name="unit_report_form_reset"),

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-head"><div><h1>{{ title }}</h1><div class="sub">{{ subject }}</div></div>
+  <div class="actions"><a class="btn" href="{{ back }}">{% t "Back" %}</a></div></div>
+<div class="note">{% t "Choose the units that should share one report form." %}</div>
+<form method="get">
+  <div class="form-actions">
+    <button type="button" class="btn small" data-check-all="on">{% t "Select all" %}</button>
+    <button type="button" class="btn small" data-check-all="off">{% t "Clear Selection" %}</button>
+  </div>
+  {% for client, units in groups.items %}
+  <div class="section-title">{{ client }} ({{ units|length }})</div>
+  <div class="card check-list unit-picks">{% for u in units %}<label><input type="checkbox" name="units" value="{{ u.pk }}"> {{ u.name }}</label>{% endfor %}</div>
+  {% empty %}<div class="empty">{% t "No units of this type." %}</div>{% endfor %}
+  {% if groups %}<div class="form-actions"><button class="btn primary">{% t "Continue" %}</button></div>{% endif %}
+</form>
+{% endblock %}

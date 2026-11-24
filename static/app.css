@@ -589,3 +589,4 @@ html[dir="rtl"] .bar .fill { transform-origin: 100% 50%; }
 .report-form-editor .new-row { background: var(--surface-2); }
 .inline-check { display: inline-flex; align-items: center; gap: 4px; white-space: nowrap; font-size: 13px; }
 .setup-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 0 16px; }
+.unit-picks { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 2px 16px; }

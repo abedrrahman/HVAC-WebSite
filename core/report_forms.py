@@ -24,7 +24,11 @@ SETUP_COUNTS = {"compressors": 5, "circuits": 3, "supply_fans": 5, "extract_fans
 
 def report_type(unit):
     """The phone's equipment type for a unit, from its main category: the same rule as machineTypeFor in the app."""
-    c = unit.category.name_en.lower()
+    return category_type(unit.category.name_en)
+
+
+def category_type(name):
+    c = name.lower()
     if "air handling" in c or "ahu" in c:
         return "ahu"
     if "chiller" in c:

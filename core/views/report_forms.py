@@ -8,7 +8,7 @@ from django.utils import timezone
 
 from ..i18n import t
 from ..models import ReportForm
-from ..report_forms import (CATALOG, SETUP_CHOICES, SETUP_COUNTS, TYPE_LABELS, WITH_AIR_FANS, WITH_COMPRESSORS, clean_setup, default_rows, effective, new_key,
+from ..report_forms import (CATALOG, SETUP_CHOICES, category_type, SETUP_COUNTS, TYPE_LABELS, WITH_AIR_FANS, WITH_COMPRESSORS, clean_setup, default_rows, effective, new_key,
                             report_type, same_rows, type_form, with_new_rows)
 from ..services import record, units_for
 from .common import post_only, requires
@@ -147,3 +147,58 @@ def report_forms(request):
     types = [{"key": k, "label": label, "form": forms.get(k), "changed": bool(forms.get(k) and forms[k].rows is not None or forms.get(k) and forms[k].materials is not None),
               "units": [f for f in own if report_type(f.unit) == k]} for k, label in TYPE_LABELS.items()]
     return render(request, "report_forms.html", {"title": t("Report forms"), "types": types})
+
+
+def report_form_units(request, rtype):
+    """One form for several units of the same type: pick the units, then edit the form once; each picked unit gets it as its own.
+    Each unit keeps its own setup (counts, phase, refrigerant), which differs from unit to unit."""
+    from ..models import Category
+    if not request.user.has("equipment.edit"):
+        raise PermissionDenied
+    if rtype not in TYPE_LABELS:
+        raise Http404
+    categories = [c.pk for c in Category.objects.all() if category_type(c.name_en) == rtype]
+    pool = units_for(request.user).filter(is_active=True, category_id__in=categories).select_related("client").order_by("client__name_en", "name_en")
+    ids = [int(x) for x in request.POST.getlist("units") or request.GET.getlist("units") if str(x).isdigit()]
+    units = list(pool.filter(pk__in=ids))
+    back = reverse("report_forms") if request.user.has("settings.manage") else reverse("unit_list")
+    if not units:  # step 1: choose the units
+        if request.method == "POST":
+            messages.error(request, t("Choose at least one unit."))
+        groups = {}
+        for u in pool:
+            groups.setdefault(u.client.name, []).append(u)
+        return render(request, "report_form_units.html", {"title": t("Report form for several units"), "subject": t(TYPE_LABELS[rtype]), "groups": groups, "back": back})
+    tf = type_form(rtype)
+    base_rows = with_new_rows(rtype, tf.rows) if tf and tf.rows is not None else default_rows(rtype)
+    base_materials = tf.materials if tf and tf.materials is not None else []
+    forms = {f.unit_id: f for f in ReportForm.objects.filter(unit__in=units)}
+    current = [effective(rtype, u) for u in units]
+    # The picked units start from the form they share; units with different forms start from their type's form.
+    rows = current[0]["rows"] if all(same_rows(c["rows"], current[0]["rows"]) for c in current) else base_rows
+    materials = current[0]["materials"] if all(c["materials"] == current[0]["materials"] for c in current) else base_materials
+    if request.method == "POST":
+        reset = bool(request.POST.get("reset"))
+        new_rows, new_materials = (None, None) if reset else (_rows_from_post(request.POST), _materials_from_post(request.POST))
+        log = ["back to the type's form"] if reset else _changes(rows, new_rows) + (["parts: " + (", ".join(f"{m['description']} {m['unit']}".strip() for m in new_materials) or "none")] if new_materials != materials else [])
+        if log:
+            now = timezone.now()
+            for u in units:
+                form = forms.get(u.pk) or ReportForm(unit=u)
+                form.rows = None if reset or same_rows(new_rows, base_rows) else new_rows
+                form.materials = None if reset or new_materials == base_materials else new_materials
+                form.web_changed_at, form.source, form.updated_by = now, "web", request.user
+                form.save()
+                record(request.user, "report_form_reset" if reset else "report_form_changed", u, f"{t(TYPE_LABELS[rtype])} · {len(units)} units\n" + "\n".join(log))
+            messages.success(request, t("The form is back to the default. New reports use it after the next sync.") if reset else
+                             t("Saved. New reports on the phones use this form after their next sync; reports already open keep theirs.") + f" ({len(units)})")
+        return redirect(f"{request.path}?" + "&".join(f"units={u.pk}" for u in units))
+    phases = {r["key"]: r.get("phase", "") for r in CATALOG.get(rtype, [])}
+    rows = [{**r, "phase": "" if r["custom"] else phases.get(r["key"], "")} for r in rows]
+    return render(request, "report_form.html", {
+        "title": t("Report form for several units"), "subject": t(TYPE_LABELS[rtype]), "back": request.path, "rtype": rtype, "type_label": TYPE_LABELS[rtype],
+        "unit": None, "multi": units, "rows": rows, "materials": materials, "setup": {}, "new_rows": range(NEW_ROWS),
+        "material_new": range(len(materials), len(materials) + NEW_ROWS), "changed": any(f.rows is not None or f.materials is not None for f in forms.values()),
+        "form": None, "show_setup": False, "choices": SETUP_CHOICES, "counts": [], "count_range": range(0),
+        "type_url": reverse("report_form_type", args=[rtype]) if request.user.has("settings.manage") else "",
+    })
