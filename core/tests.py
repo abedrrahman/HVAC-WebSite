@@ -306,6 +306,15 @@ class AlarmChat(Base):
             self.client.cookies["lang"] = lang
         return self.client.get(reverse("alarm_ask"), {"q": q, "model": model}).json()
 
+    def test_a_parameter_code_finds_its_row_in_the_manuals_table(self):
+        self.page(self.manual, 17, "COOLING CONTROL 1 103 Temperature setpoint in cooling mode 8,0 to 45,0°C 25,0°C P07 > 0 1 104 Temperature proportional band "
+                                   "in cooling mode 1,0 to 10,0 K 2,0 K P07 > 0 1 105 Temperature integral time P07 > 0 1 106 Temperature setpoint in heating mode P08 > 0 P06 = 1")
+        self.page(self.manual, 18, "The cooling setpoint must stay below P103 + P104 when the heater runs.")  # only mentions it
+        for q in ("P103", "parameter 103", "معامل 103"):
+            first = self.ask(q)["passages"][0]
+            self.assertEqual((first["source"]["page"], first["snippet"][:12]), (17, "[[103]] Temp"), q)
+        self.assertEqual(self.ask("C12").get("passages", []), [])  # a number alone on a page of other numbers is not a parameter C12
+
     def test_a_described_problem_finds_alarm_and_manual_page_with_source(self):
         data = self.ask("my unit has high pressure on the compressor")
         self.assertEqual(data["alarms"][0]["code"], "15001")

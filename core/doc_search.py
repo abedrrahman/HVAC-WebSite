@@ -217,15 +217,59 @@ def is_exact(terms, groups, passages):
     return not terms or any(_covered(_alarm_text(g["alarm"]), terms) == len(terms) for g in groups) or any(_covered(p["page"].text, terms) == len(terms) for p in passages)
 
 
-def search_pages(user, terms, model):
-    if not terms:
-        return []
+def _manuals(user, model):
+    """The manuals this user may read; with a model chosen, only those linked to it, its type, subtype or maker."""
     docs = documents_for(user).filter(is_archived=False)
     if model:
         q = Q(assignments__model=model) | Q(assignments__category=model.category) | Q(assignments__manufacturer=model.manufacturer) | Q(assignments__level="all")
         if model.subtype_id:
             q |= Q(assignments__subtype=model.subtype)
         docs = docs.filter(q)
+    return docs
+
+
+# A parameter asked for by its code (P103, C01, N04, Sp 01) or as "parameter 103" / "معامل 103".
+PARAM_CODE = re.compile(r"(?<![A-Za-z0-9])([A-Za-z]{1,2})[ -]?(\d{1,4})(?![0-9])")
+PARAM_WORD = re.compile(r"(?i)(?:param(?:eter)?s?|setting|معامل|باراميتر|برامتر)\D{0,3}(\d{1,4})")
+
+
+def search_parameters(user, question, model):
+    """The manual pages that define a parameter: its row in a parameter table, with the description, range and default as the snippet.
+    A table row often prints only the number (103, not P103), so a page is trusted when the numbers around it are there too."""
+    found = PARAM_WORD.search(question) or PARAM_CODE.search(question)
+    if not found:
+        return []
+    letters, number = (found.group(1), found.group(2)) if found.re is PARAM_CODE else ("", found.group(1))
+    n = int(number)
+    own = rf"(?<![A-Za-z0-9.,]){re.escape(letters)}\s?0*{n}(?![0-9.,%])" if letters else None
+    bare = rf"(?<![A-Za-z0-9.,]){n}(?![0-9.,%])"
+    rows = []
+    for page in DocumentPage.objects.filter(document__in=_manuals(user, model).values("pk"), text__iregex=rf"(^|[^0-9]){n}([^0-9]|$)").select_related("document")[:500]:
+        text = page.text
+        exact = len(re.findall(own, text, re.I)) if own else 0
+        neighbours = sum(bool(re.search(rf"(?<![A-Za-z0-9.,])(?:{re.escape(letters)}\s?)?{k}(?![0-9.,%])", text, re.I)) for k in range(max(n - 5, 0), n + 6) if k != n)
+        # With letters typed (C12), a page counts only if it is about such codes: the code itself, or several others like it (C11, C13).
+        family = not letters or exact or len(set(re.findall(rf"(?<![A-Za-z0-9]){re.escape(letters)}\s?\d{{1,4}}(?![0-9])", text, re.I))) >= 3
+        row = re.search(rf"(?:{own}|{bare})\s+[A-Za-z][a-z]", text, re.I) if own else re.search(rf"{bare}\s+[A-Za-z][a-z]", text)
+        score = min(exact, 2) * 2 + neighbours * 4 + (4 if row else 0)  # a table with the numbers around it beats a page that only mentions the code
+        if row and family and (exact or neighbours >= 2):
+            end = re.search(rf"(?<![A-Za-z0-9.,])(?:{re.escape(letters)}\s?)?{n + 1}(?![0-9.,%])", text[row.start() + 1:], re.I)
+            stop = row.start() + 1 + end.start() if end and end.start() < 260 else row.start() + 240
+            snippet = text[row.start():stop].strip()
+            code = re.match(r"\S+", snippet).group()
+            rows.append((score, page.number, {"page": page, "snippet": "[[" + code + "]]" + snippet[len(code):]}))
+    chosen, seen = [], set()
+    for _, _, hit in sorted(rows, key=lambda r: (-r[0], r[1])):
+        if hit["page"].document_id not in seen:  # one row per manual
+            seen.add(hit["page"].document_id)
+            chosen.append(hit)
+    return chosen[:3]
+
+
+def search_pages(user, terms, model):
+    if not terms:
+        return []
+    docs = _manuals(user, model)
     fix_words = ("troubleshoot", "cause", "corrective", "remedy", "solution", "check")  # pages that explain a repair beat parameter tables
     rows = _best(DocumentPage.objects.filter(document__in=docs.values("pk")).select_related("document"), terms, lambda p: p.text,
                  lambda p: (-_covered(p.text, terms), -sum(w in p.text.lower() for w in fix_words)))

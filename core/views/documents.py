@@ -10,7 +10,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
 
 from .. import forms as f
-from ..doc_search import guide_steps, is_exact, parse, search_alarms, search_pages
+from ..doc_search import guide_steps, is_exact, parse, search_alarms, search_pages, search_parameters
 from ..i18n import t
 from ..models import (Attachment, Category, Document, DocumentAssignment, DocumentType, EquipmentModel, Manufacturer, Subtype, PREVIEWABLE)
 from ..services import attachment_allowed, documents_for, documents_for_unit, documents_for_units, in_category, record, units_for, units_reached
@@ -173,7 +173,9 @@ def alarm_ask(request):
     if not terms and not stems:
         return JsonResponse({"text": t("Please describe the problem in a few more words, or type the alarm code.")})
     groups = search_alarms(question, terms, stems, model.controller if model and model.controller_id else None) if not model or model.controller_id else []
-    passages = search_pages(request.user, terms, model)
+    params = search_parameters(request.user, question, model)  # a parameter asked by its code goes straight to its row in the manual
+    shown = {p["page"].pk for p in params}
+    passages = (params + [p for p in search_pages(request.user, terms, model) if p["page"].pk not in shown])[:5]
     visible = set(documents_for(request.user).filter(pk__in={g["alarm"].source_document_id for g in groups}).values_list("pk", flat=True)) | {p["page"].document_id for p in passages}
     kinds = {"cause": t("Check this possible cause"), "check": t("Check"), "fix": t("Do this"), "reset": t("Reset the alarm")}
     alarms = []
